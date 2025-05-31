@@ -6,8 +6,8 @@
   "chrome_url_overrides": {
     "newtab": "index.html"
   },
-  "permissions": [],
-  "host_permissions": [],
+  "permissions": ["storage"],
+  "host_permissions": ["https://api.nasa.gov/"],
   "action": {
     "default_title": "Magrid Startpage"
   },
