@@ -99,6 +99,20 @@ a:hover {
     opacity: 1;
 }
 
+.weather-widget {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    color: white;
+    font-size: 14px;
+    font-family: monospace;
+    padding: 8px 12px;
+    border-radius: 10px;
+    z-index: 1000;
+    outline-style: solid;
+    outline-width: 1px;
+}
+
 @keyframes opacity {
     0% {
         opacity: 1;
