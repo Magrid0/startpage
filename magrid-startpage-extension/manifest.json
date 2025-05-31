@@ -10,5 +10,11 @@
   "host_permissions": [],
   "action": {
     "default_title": "Magrid Startpage"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "newtab@magrid.com",
+      "strict_min_version": "58.0"
+    }
   }
 }
