@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Magrid Startpage",
-  "version": "1.4",
+  "version": "1.5",
   "description": "Replaces the new tab with my personal homepage.",
   "chrome_url_overrides": {
     "newtab": "index.html"
@@ -16,5 +16,8 @@
       "id": "newtab@magrid.com",
       "strict_min_version": "58.0"
     }
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self';"
   }
 }
