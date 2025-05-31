@@ -9,8 +9,8 @@
     <body>
         <div class="container">
             <div class="left-container">
-                <div class="gif">
-                    <img src="cat.gif" />
+                <div class="jpg">
+                    <img id="nasa-img" alt="NASA Picture of the Day" />
                 </div>
             </div>
 
@@ -94,5 +94,28 @@
                 </div>
             </div>
         </div>
+
+        <script>
+            const apiKey = "onhyF1p6RqQ7bzpVUPcaIzfL2zorx0hkJXMaYcFu"; // Replace with your own key for higher usage limits
+            const apiUrl = `https://api.nasa.gov/planetary/apod?api_key=${apiKey}`;
+
+            fetch(apiUrl)
+                .then((response) => response.json())
+                .then((data) => {
+                    if (data.media_type === "image") {
+                        document.getElementById("nasa-img").src = data.url;
+                        document.getElementById("nasa-img").alt = data.title;
+                    } else {
+                        // If the APOD is a video (e.g., YouTube), fallback to a placeholder
+                        document.getElementById("nasa-img").src =
+                            "fallback.jpg";
+                        document.getElementById("nasa-img").alt =
+                            "Video of the Day (not shown)";
+                    }
+                })
+                .catch((error) => {
+                    console.error("Error fetching NASA APOD:", error);
+                });
+        </script>
     </body>
 </html>
