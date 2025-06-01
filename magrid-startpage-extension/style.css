@@ -113,6 +113,26 @@ a:hover {
     outline-width: 1px;
 }
 
+.clock-widget {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    color: white;
+    font-family: monospace;
+    font-size: 14px;
+    text-align: right;
+    z-index: 1000;
+}
+
+#time {
+    font-size: 16px;
+    font-weight: bold;
+}
+
+#date {
+    opacity: 0.8;
+}
+
 @keyframes opacity {
     0% {
         opacity: 1;
