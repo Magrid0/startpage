@@ -100,6 +100,8 @@ a:hover {
 }
 
 .weather-widget {
+    top: 20px;
+    left: 20px;
     position: absolute;
     top: 20px;
     left: 20px;
@@ -107,7 +109,6 @@ a:hover {
     font-size: 14px;
     font-family: monospace;
     padding: 8px 12px;
-    border-radius: 10px;
     z-index: 1000;
 }
 
@@ -118,8 +119,14 @@ a:hover {
     color: white;
     font-family: monospace;
     font-size: 14px;
-    text-align: right;
+    text-align: right; /* Align text to the right */
     z-index: 1000;
+    padding: 8px 12px;
+}
+
+.clock-widget span {
+    display: block; /* Force line breaks */
+    line-height: 1.4;
 }
 
 #time {
@@ -129,6 +136,7 @@ a:hover {
 
 #date {
     opacity: 0.8;
+    font-size: 14px;
 }
 
 @keyframes opacity {
