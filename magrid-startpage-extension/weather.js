@@ -9,11 +9,15 @@ function updateWeatherWidget() {
     .then((data) => {
       const location = data.name;
       const temp = Math.round(data.main.temp);
+      const icon = data.weather[0].icon;
       const description = data.weather[0].description;
 
       document.getElementById("weather-location").textContent = `${location}`;
       document.getElementById("weather-temp").textContent =
         `${temp}°C - ${description}`;
+      document.getElementById("weather-icon").src =
+        `https://openweathermap.org/img/wn/${icon}.png`;
+      document.getElementById("weather-icon").alt = description;
     })
     .catch((err) => {
       document.getElementById("weather-location").textContent =
