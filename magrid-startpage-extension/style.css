@@ -109,8 +109,6 @@ a:hover {
     padding: 8px 12px;
     border-radius: 10px;
     z-index: 1000;
-    outline-style: solid;
-    outline-width: 1px;
 }
 
 .clock-widget {
