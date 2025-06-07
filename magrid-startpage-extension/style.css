@@ -8,34 +8,53 @@
 
 html,
 body {
-    background: var(--color-bg);
+    background: url('wallpaper.png') no-repeat center center fixed;
+    background-size: cover;
     color: var(--color-fg);
     font-family: "Fira Code";
     height: 100%;
     width: 100%;
     margin: 0;
     padding: 0;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
 }
 
 .container {
-    display: grid;
-    grid-template-columns: 1fr 460px 600px 1fr;
+    display: flex;
+    flex-direction: row;
     grid-template-areas: ". left right .";
     column-gap: 80px;
-    justify-items: center;
+    justify-content: center;
     align-items: center;
-    min-height: 100%;
+    width: 75%;
+}
+
+.content-wrapper {
+    display: flex;
+    flex-direction: row;
+    background-color: rgba(0, 0, 0, 0.6);
+    border-radius: 16px;
+    padding: 40px;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(7px);
+    -webkit-backdrop-filter: blur(8px);
 }
 
 .left-container {
+    display: flex;
     grid-area: left;
-    aspect-ratio: 1/1;
+    aspect-ratio: auto;
 }
 
 .right-container {
     grid-area: right;
-    height: 50%;
+    height: auto;
     width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .jpg img {
@@ -49,7 +68,7 @@ body {
     flex-direction: column;
     align-items: center;
     font-size: 40px;
-    padding-top: 60px;
+    padding-top: auto;
 }
 
 .category {
@@ -61,6 +80,7 @@ body {
 .bookmarks {
     display: flex;
     justify-content: center;
+
 }
 
 .links {
@@ -73,6 +93,7 @@ body {
 
 .title {
     font-size: 20px;
+    font-weight: bold;
 }
 
 li {
@@ -140,6 +161,10 @@ a:hover {
     padding-top: 8px;
 }
 
+#greeting {
+    font-weight: bold;
+}
+
 @keyframes opacity {
     0% {
         opacity: 1;
@@ -153,3 +178,4 @@ a:hover {
         opacity: 1;
     }
 }
+
