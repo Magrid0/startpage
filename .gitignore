@@ -2,4 +2,5 @@
 magrid-startpage-extension.zip
 
 # Ignore experimental folder
-./experimental/*
+/experimental/*
+/experimental

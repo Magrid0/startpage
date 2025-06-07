@@ -35,7 +35,7 @@ body {
     display: flex;
     flex-direction: row;
     background-color: rgba(0, 0, 0, 0.6);
-    border-radius: 16px;
+    border-radius: 30px;
     padding: 40px;
     box-shadow: 0 0 30px rgba(0, 0, 0, 0.4);
     backdrop-filter: blur(7px);
@@ -60,7 +60,7 @@ body {
 .jpg img {
     max-width: 100%;
     height: auto;
-    border-radius: 8px;
+    border-radius: 30px;
 }
 
 .head {
