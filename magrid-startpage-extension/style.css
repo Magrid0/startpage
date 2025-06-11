@@ -8,7 +8,7 @@
 
 html,
 body {
-    background: url('wallpaper.png') no-repeat center center fixed;
+    background: url("wallpaper.png") no-repeat center center fixed;
     background-size: cover;
     color: var(--color-fg);
     font-family: "Fira Code";
@@ -35,7 +35,7 @@ body {
     display: flex;
     flex-direction: row;
     background-color: rgba(0, 0, 0, 0.6);
-    border-radius: 30px;
+    border-radius: 16px;
     padding: 40px;
     box-shadow: 0 0 30px rgba(0, 0, 0, 0.4);
     backdrop-filter: blur(7px);
@@ -60,7 +60,7 @@ body {
 .jpg img {
     max-width: 100%;
     height: auto;
-    border-radius: 30px;
+    border-radius: 8px;
 }
 
 .head {
@@ -80,7 +80,6 @@ body {
 .bookmarks {
     display: flex;
     justify-content: center;
-
 }
 
 .links {
@@ -178,4 +177,3 @@ a:hover {
         opacity: 1;
     }
 }
-
