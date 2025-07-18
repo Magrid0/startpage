@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Magrid Startpage",
-  "version": "1.8.3",
+  "version": "1.8.4",
   "description": "Replaces homescreen and newtab with my personal start page.",
   "chrome_url_overrides": {
     "newtab": "index.html"
