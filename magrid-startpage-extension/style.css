@@ -8,7 +8,7 @@
 
 html,
 body {
-    background: url("wallpaper.png") no-repeat center center fixed;
+    background: url("wallpaper.jpg") no-repeat center center fixed;
     background-size: cover;
     color: var(--color-fg);
     font-family: "Fira Code";
