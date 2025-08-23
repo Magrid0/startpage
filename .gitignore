@@ -4,3 +4,6 @@ magrid-startpage-extension.zip
 # Ignore experimental folder
 /experimental/*
 /experimental
+
+new-update-zip.sh
+old-update-zip.sh
