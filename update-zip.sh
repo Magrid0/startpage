@@ -2,8 +2,8 @@
 
 # Variables
 zipName=magrid-startpage-extension.zip
-projectRoot=/home/magrid/Documents/Programming/startpage/
-dirToZip=/home/magrid/Documents/Programming/startpage/magrid-startpage-extension/
+projectRoot=/home/magrid/Projects/Programming/startpage
+dirToZip=/home/magrid/Projects/Programming/startpage/magrid-startpage-extension/
 
 # Colors
 GREEN="\033[0;32m"   # Success
