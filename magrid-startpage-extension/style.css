@@ -1,14 +1,14 @@
 :root {
     --color-bg: #282828;
-    --color-fg: #2f6388;
-    --color-link: #9abedb;
-    --color-link-visited: #9abedb;
-    --color-link-hover: #2f6388;
+    --color-fg: #a0d795;
+    --color-link: #4e8346;
+    --color-link-visited: #4e8346;
+    --color-link-hover: #72a06b;
 }
 
 html,
 body {
-    background: url("wallpaper.jpg") no-repeat center center fixed;
+    background: url("wallpaper.png") no-repeat center center fixed;
     background-size: cover;
     color: var(--color-fg);
     font-family: "Fira Code";
