@@ -3,6 +3,10 @@
     <head>
         <meta charset="UTF-8" />
         <title>Home</title>
+        <!-- Puts the cached wallpaper on screen before the first paint, so a new
+             tab opens on the wallpaper rather than a frame of flat colour.
+             Must be a file: the CSP forbids inline scripts. -->
+        <script src="boot.js"></script>
         <link rel="stylesheet" type="text/css" href="style.css" />
         <link rel="stylesheet" type="text/css" href="settings.css" />
     </head>
