@@ -95,7 +95,10 @@
                 </header>
 
                 <nav class="settings-tabs" id="settings-tabs">
-                    <button class="settings-tab is-active" data-tab="appearance" type="button">
+                    <button class="settings-tab is-active" data-tab="presets" type="button">
+                        Presets
+                    </button>
+                    <button class="settings-tab" data-tab="appearance" type="button">
                         Appearance
                     </button>
                     <button class="settings-tab" data-tab="wallpaper" type="button">
@@ -114,17 +117,48 @@
 
                 <div class="settings-body">
                     <!-- Appearance -->
-                    <section class="settings-section is-active" data-section="appearance">
-                        <h2>Presets</h2>
-                        <div class="preset-row" id="preset-row"></div>
+                    <!-- Presets -->
+                    <section class="settings-section is-active" data-section="presets">
+                        <h2>Your presets</h2>
                         <p class="field-hint">
-                            A preset sets every colour, the panel and the
-                            background in one go. Your own image is never
-                            deleted, only set aside, and the Wallpaper tab can
-                            bring it back. Anything a preset does not cover,
-                            such as the fonts and the bookmarks, is left alone.
+                            A preset keeps the colours, the panel and the
+                            background of the moment you saved it, so a look
+                            always comes back whole. Your fonts, sizes and
+                            bookmarks are not part of one and are left alone.
                         </p>
 
+                        <div class="button-row">
+                            <input
+                                type="text"
+                                id="preset-name"
+                                class="preset-name-input"
+                                placeholder="Name this look"
+                                maxlength="30"
+                                aria-label="Name for the current look"
+                            />
+                            <button class="button button-primary" id="preset-save" type="button">
+                                Save the current look
+                            </button>
+                        </div>
+
+                        <div class="preset-gallery" id="preset-gallery"></div>
+                        <p class="field-hint" id="preset-empty">
+                            Nothing saved yet. Set up a look you like, give it a
+                            name above, and it turns up here as a card you can
+                            click to bring it back.
+                        </p>
+
+                        <h2>Starter looks</h2>
+                        <div class="preset-row" id="preset-row"></div>
+                        <p class="field-hint">
+                            Five ready made looks, each with the background it
+                            was designed for. Use one as it is, or change the
+                            colours and save the result as your own.
+                        </p>
+                    </section>
+
+                    <!-- Appearance -->
+                    <section class="settings-section" data-section="appearance">
                         <h2>Colors</h2>
                         <div class="field-grid">
                             <label class="field">
@@ -485,8 +519,8 @@
             </div>
         </div>
 
-        <script src="settings.js"></script>
         <script src="presets.js"></script>
+        <script src="settings.js"></script>
         <script src="bookmarks.js"></script>
         <script src="weather.js"></script>
         <script src="clock.js"></script>

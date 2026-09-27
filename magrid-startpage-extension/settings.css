@@ -249,6 +249,7 @@
 .settings-panel input[type="text"],
 .settings-panel select,
 .settings-panel textarea {
+    box-sizing: border-box;
     width: 100%;
     padding: 7px 9px;
     color: var(--settings-fg);
@@ -309,8 +310,112 @@
     margin: 12px 0;
 }
 
-/* A preset button is a chip of the background it applies, with the name on
-   top. The gradient comes from presets.js, so the chip cannot drift from it. */
+/* --- the gallery ----------------------------------------------------------
+   Cards for the looks you saved. The card is a little window onto the look:
+   the background it uses, the panel sitting on it, and a few lines in the
+   colours that preset was saved with.
+   ------------------------------------------------------------------------- */
+
+.preset-gallery {
+    display: grid;
+    /* Wide enough that the three buttons on a card sit on one line, so a card
+       reads as a thing rather than as a stack of controls. */
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 12px;
+    margin: 14px 0;
+}
+
+.preset-card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px;
+    background: var(--settings-bg-soft);
+    border: 1px solid var(--settings-border);
+    border-radius: 10px;
+}
+
+.preset-preview {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 96px;
+    padding: 10px;
+    background-color: #2b2b2b;
+    background-size: cover;
+    border-radius: 7px;
+    overflow: hidden;
+}
+
+.preset-sample {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 10px 18px;
+    font-family: var(--font-family, monospace);
+    font-size: 12px;
+    line-height: 1.5;
+    border-radius: 6px;
+    box-shadow: 0 0 12px rgba(0, 0, 0, 0.35);
+}
+
+/* A picture that came with the export but is not in this browser, or one that
+   was deleted: the card still lists the look, marked rather than blank. */
+.preset-card.is-missing-image .preset-preview::after {
+    content: "picture not in this browser";
+    padding: 3px 8px;
+    color: #fbf1c7;
+    font-size: 11px;
+    text-align: center;
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: 6px;
+}
+
+.preset-name,
+.preset-name-input {
+    box-sizing: border-box;
+    width: 100%;
+    /* An input keeps a width of its own, and without this it can push past a
+       narrow card rather than shrink to fit. */
+    min-width: 0;
+    padding: 7px 9px;
+    color: var(--settings-fg);
+    font-family: inherit;
+    font-size: 13px;
+    background: var(--settings-bg);
+    border: 1px solid var(--settings-border);
+    border-radius: 7px;
+}
+
+.preset-name-input {
+    max-width: 260px;
+}
+
+.preset-card .button-row {
+    flex-wrap: wrap;
+    margin: 0;
+    gap: 6px;
+}
+
+.preset-card .button {
+    padding: 5px 10px;
+    font-size: 12px;
+}
+
+.button-primary {
+    color: #10241f;
+    background: var(--settings-accent);
+    border-color: var(--settings-accent);
+}
+
+.button-primary:hover {
+    color: #10241f;
+    filter: brightness(1.1);
+}
+
+/* A starter look is a chip of the background it applies, with the name on top.
+   The gradient comes from presets.js, so the chip cannot drift from it. */
 .preset-row {
     display: flex;
     flex-wrap: wrap;
