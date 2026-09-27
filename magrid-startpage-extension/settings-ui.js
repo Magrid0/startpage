@@ -1059,6 +1059,51 @@ const SettingsUI = (() => {
         renderStarterLooks();
         renderEditor();
         renderGallery();
+        // The menu is now drawn from whatever the settings are at this moment,
+        // so the next change is compared against that rather than against
+        // whatever was on disk when the page loaded.
+        drawn = drawnFrom(Settings.get());
+    }
+
+    /**
+     * What the menu was last drawn from, so a change redraws the part it
+     * actually affects.
+     *
+     * Every part of the menu is drawn from a different corner of the settings.
+     * Rebuilding all of them for one change is not free: a single colour tweak
+     * was rebuilding the whole bookmark editor and the whole preset gallery,
+     * making a fresh preview and a fresh object URL for every card, and reading
+     * the wallpaper back out of storage for a wallpaper that had not changed.
+     */
+    let drawn = null;
+
+    const drawnFrom = (state) => ({
+        inputs: JSON.stringify([
+            state.theme,
+            state.panel,
+            state.layout,
+            state.wallpaperDim,
+            state.widgets,
+            state.greetingName,
+            state.greetingTemplate,
+        ]),
+        wallpaper: JSON.stringify(state.wallpaper),
+        bookmarks: JSON.stringify(state.bookmarks),
+        presets: JSON.stringify(state.presets),
+    });
+
+    function redrawChanged(state) {
+        if (selfChange || !contentsBuilt) return;
+        const next = drawnFrom(state);
+        if (!drawn) {
+            drawn = next;
+            return;
+        }
+        if (next.inputs !== drawn.inputs) fillInputs();
+        if (next.wallpaper !== drawn.wallpaper) refreshWallpaperInfo();
+        if (next.bookmarks !== drawn.bookmarks) renderEditor();
+        if (next.presets !== drawn.presets) renderGallery();
+        drawn = next;
     }
 
     function init() {
@@ -1072,17 +1117,10 @@ const SettingsUI = (() => {
         bindEditor();
         bindData();
 
-        // Settings that arrived from disk (or another tab) repaint the form.
-        Settings.subscribe(() => {
-            if (selfChange || !contentsBuilt) return;
-            fillInputs();
-            refreshWallpaperInfo();
-            renderEditor();
-            renderGallery();
-        });
-
-        // Nothing in the menu is drawn until it is opened, so there is nothing
-        // here to keep in step with the settings yet.
+        // Settings that arrived from disk, from another tab, or from a write of
+        // our own such as the weather widget looking a city up, redraw the parts
+        // of the menu that change touched.
+        Settings.subscribe(redrawChanged);
     }
 
     return { init, open, close, toggle };
