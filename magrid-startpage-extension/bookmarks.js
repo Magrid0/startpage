@@ -90,10 +90,15 @@ const Bookmarks = (() => {
     /** Moves a category from one position to another. */
     function moveCategory(from, to) {
         const bookmarks = cloneBookmarks();
-        if (from === to) return Promise.resolve();
+        if (from < 0 || from >= bookmarks.length) return Promise.resolve();
+
         const [moved] = bookmarks.splice(from, 1);
-        if (!moved) return Promise.resolve();
-        bookmarks.splice(to, 0, moved);
+        // Clamped, because a negative index would wrap around and move the
+        // wrong category.
+        const target = Math.min(Math.max(to, 0), bookmarks.length);
+        if (target === from) return Promise.resolve();
+
+        bookmarks.splice(target, 0, moved);
         return commit(bookmarks);
     }
 
@@ -126,9 +131,13 @@ const Bookmarks = (() => {
     function moveLink(categoryIndex, from, to) {
         const bookmarks = cloneBookmarks();
         const links = bookmarks[categoryIndex]?.links;
-        if (!links || from === to) return Promise.resolve();
+        if (!links || from < 0 || from >= links.length) return Promise.resolve();
+
         const [moved] = links.splice(from, 1);
-        links.splice(to, 0, moved);
+        const target = Math.min(Math.max(to, 0), links.length);
+        if (target === from) return Promise.resolve();
+
+        links.splice(target, 0, moved);
         return commit(bookmarks);
     }
 

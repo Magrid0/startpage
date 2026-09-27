@@ -71,7 +71,9 @@ const SettingsUI = (() => {
     }
 
     function formatValue(path, value) {
-        if (path === "panel.opacity") return `${Math.round(value * 100)}%`;
+        if (path === "panel.opacity" || path === "wallpaperDim") {
+            return `${Math.round(value * 100)}%`;
+        }
         if (path.startsWith("theme.size") || path === "panel.blur") {
             return `${value}px`;
         }
