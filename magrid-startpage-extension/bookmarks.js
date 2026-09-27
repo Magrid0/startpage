@@ -46,7 +46,11 @@ const Bookmarks = (() => {
         title.textContent = category.name;
         list.append(title);
 
-        for (const link of category.links) list.append(buildLink(link));
+        // A bookmark still missing its URL is skipped rather than rendered as a
+        // link back to this page.
+        for (const link of category.links) {
+            if (link.url) list.append(buildLink(link));
+        }
 
         wrapper.append(list);
         return wrapper;
@@ -140,3 +144,19 @@ const Bookmarks = (() => {
         moveLink,
     };
 })();
+
+// Repaint whenever the stored bookmarks actually change, but ignore colour or
+// slider tweaks that only touch the theme.
+let snapshot = "";
+
+Settings.subscribe((state) => {
+    const next = JSON.stringify(state.bookmarks);
+    if (next === snapshot) return;
+    snapshot = next;
+    Bookmarks.render();
+});
+
+Settings.ready.then(() => {
+    snapshot = JSON.stringify(Settings.get().bookmarks);
+    Bookmarks.render();
+});

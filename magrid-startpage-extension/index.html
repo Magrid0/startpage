@@ -4,12 +4,12 @@
         <meta charset="UTF-8" />
         <title>Home</title>
         <link rel="stylesheet" type="text/css" href="style.css" />
+        <link rel="stylesheet" type="text/css" href="settings.css" />
     </head>
 
     <body>
         <div class="weather-widget" id="weather-widget">
-            <span style="font-weight: bold;on" id="weather-location"
-                >Loading...</span
+            <span style="font-weight: bold" id="weather-location">Loading...</span
             ><br />
             <span id="weather-temp"></span>
             <img
@@ -20,99 +20,350 @@
             />
         </div>
 
-        <div class="clock-widget">
+        <div class="clock-widget" id="clock-widget">
             <span id="time"></span>
             <span id="date"></span>
         </div>
 
         <div class="container">
             <div class="content-wrapper">
-            <div class="right-container">
-                <div class="head">
-                    <p id="greeting">Hello, Magrid.</p>
+                <div class="right-container">
+                    <div class="head">
+                        <p id="greeting">Hello, Magrid.</p>
+                    </div>
+
+                    <!-- Categories are rendered by bookmarks.js -->
+                    <div class="bookmarks" id="bookmarks"></div>
                 </div>
-
-                <div class="bookmarks">
-                    <div class="category">
-                        <div class="links">
-                            <li class="title">general</li>
-                            <li><a href="https://gmail.com">gmail</a></li>
-                            <li><a href="https://calendar.google.com/">calendar</a></li>
-                            <li><a href="https://www.ilmeteo.it/">weather</a></li>
-                            <li><a href="https://docs.google.com/">docs</a></li>
-                            <li><a href="https://www.amazon.it/">amazon</a></li>
-                        </div>
-                    </div>
-
-                    <div class="category">
-                        <div class="links">
-                            <li class="title">piracy</li>
-                            <li>
-                                <a
-                                    href="https://cs.rin.ru/forum/viewforum.php?f=10&sid=7fde095c071a995ee362a0d5a5aceb3a"
-                                    >cs.rin.ru</a
-                                >
-                            </li>
-                            <li>
-                                <a href="https://squid.wtf//">music</a>
-                            </li>
-                            <li>
-                                <a href="https://animeunity.so/">anime</a>
-                            </li>
-                            <li>
-                                <a href="https://streamingunity.tv/">streaming community</a>
-                            </li>
-                            <li><a href="https://vedo.direttecommunity.online/partite-streaming.html">calcio</a></li>
-                        </div>
-                    </div>
-
-                    <div class="category">
-                        <div class="links">
-                            <li class="title">tools</li>
-                            <li><a href="https://chatgpt.com/">chatgpt</a></li>
-                            <li>
-                                <a href="https://www.perplexity.ai/"
-                                    >perplexity</a
-                                >
-                            </li>
-                            <li>
-                                <a href="https://chat.deepseek.com/"
-                                    >deepseek</a
-                                >
-                            </li>
-                            <li>
-                                <a href="https://pairdrop.net/">pairdrop</a>
-                            </li>
-                            <li><a href="https://www.protondb.com/">protondb</a></li>
-                        </div>
-                    </div>
-
-                    <div class="category">
-                        <div class="links">
-                            <li class="title">social</li>
-                            <li><a href="https://youtube.com/">youtube</a></li>
-                            <li>
-                                <a href="https://www.reddit.com/">reddit</a>
-                            </li>
-                            <li>
-                                <a href="https://web.whatsapp.com/">whatsapp</a>
-                            </li>
-                            <li>
-                                <a href="https://4chan.org">4chan</a>
-                            </li>
-                            <li>
-                                <a href="https://twitch.tv">twitch</a>
-                            </li>
-                        </div>
-                    </div>
-                </div>
-            </div>
             </div>
         </div>
 
-        <script src="nasa.js"></script>
+        <button
+            class="settings-button"
+            id="settings-button"
+            type="button"
+            title="Settings (s)"
+            aria-label="Settings"
+        >
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                <path
+                    fill="currentColor"
+                    d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm0 6a2 2 0 1 1 0-4 2 2 0 0 1 0 4Z"
+                />
+                <path
+                    fill="currentColor"
+                    d="M10.3 2h3.4l.5 2.6c.5.2 1 .4 1.4.7l2.4-1.1 1.7 3-2 1.7c0 .3.1.5.1.8s0 .5-.1.8l2 1.7-1.7 3-2.4-1.1c-.4.3-.9.5-1.4.7l-.5 2.6h-3.4l-.5-2.6a7 7 0 0 1-1.4-.7l-2.4 1.1-1.7-3 2-1.7a7 7 0 0 1 0-1.6l-2-1.7 1.7-3 2.4 1.1c.4-.3.9-.5 1.4-.7L10.3 2Zm1.7 2-1.4.1-.4 2.1c-.7.3-1.4.7-2 1.1l-2-1-1 1.7 1.7 1.4a7 7 0 0 0 0 2.3l-1.7 1.4 1 1.7 2-1c.6.4 1.3.8 2 1.1l.4 2.1h1.4l.4-2.1c.7-.3 1.4-.7 2-1.1l2 1 1-1.7-1.7-1.4a7 7 0 0 0 0-2.3l1.7-1.4-1-1.7-2 1a7 7 0 0 0-2-1.1L12 4Z"
+                />
+            </svg>
+        </button>
+
+        <!-- Settings overlay. Markup lives in HTML, behaviour in settings-ui.js -->
+        <div class="settings-overlay" id="settings-overlay" hidden>
+            <div
+                class="settings-panel"
+                id="settings-panel"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="settings-title"
+            >
+                <header class="settings-header">
+                    <h1 id="settings-title">Settings</h1>
+                    <button
+                        class="settings-close"
+                        id="settings-close"
+                        type="button"
+                        aria-label="Close settings"
+                    >
+                        &times;
+                    </button>
+                </header>
+
+                <nav class="settings-tabs" id="settings-tabs">
+                    <button class="settings-tab is-active" data-tab="appearance" type="button">
+                        Appearance
+                    </button>
+                    <button class="settings-tab" data-tab="wallpaper" type="button">
+                        Wallpaper
+                    </button>
+                    <button class="settings-tab" data-tab="widgets" type="button">
+                        Widgets
+                    </button>
+                    <button class="settings-tab" data-tab="bookmarks" type="button">
+                        Bookmarks
+                    </button>
+                    <button class="settings-tab" data-tab="data" type="button">
+                        Data
+                    </button>
+                </nav>
+
+                <div class="settings-body">
+                    <!-- Appearance -->
+                    <section class="settings-section is-active" data-section="appearance">
+                        <h2>Colors</h2>
+                        <div class="field-grid">
+                            <label class="field">
+                                <span>Text</span>
+                                <input type="color" data-setting="theme.colorFg" />
+                            </label>
+                            <label class="field">
+                                <span>Category titles</span>
+                                <input type="color" data-setting="theme.colorTitle" />
+                            </label>
+                            <label class="field">
+                                <span>Bookmarks</span>
+                                <input type="color" data-setting="theme.colorLink" />
+                            </label>
+                            <label class="field">
+                                <span>Bookmarks (hover)</span>
+                                <input type="color" data-setting="theme.colorLinkHover" />
+                            </label>
+                            <label class="field">
+                                <span>Bookmarks (visited)</span>
+                                <input type="color" data-setting="theme.colorLinkVisited" />
+                            </label>
+                            <label class="field">
+                                <span>Clock &amp; weather text</span>
+                                <input type="color" data-setting="theme.colorWidget" />
+                            </label>
+                        </div>
+
+                        <h2>Typography</h2>
+                        <label class="field field-wide">
+                            <span>Font family</span>
+                            <input
+                                type="text"
+                                data-setting="theme.fontFamily"
+                                placeholder='"Fira Code"'
+                                spellcheck="false"
+                            />
+                        </label>
+                        <div class="field-grid">
+                            <label class="field">
+                                <span>Bookmark size</span>
+                                <input
+                                    type="range"
+                                    data-setting="theme.sizeLinks"
+                                    min="8"
+                                    max="48"
+                                    step="1"
+                                />
+                                <output data-output-for="theme.sizeLinks"></output>
+                            </label>
+                            <label class="field">
+                                <span>Category title size</span>
+                                <input
+                                    type="range"
+                                    data-setting="theme.sizeTitle"
+                                    min="8"
+                                    max="64"
+                                    step="1"
+                                />
+                                <output data-output-for="theme.sizeTitle"></output>
+                            </label>
+                            <label class="field">
+                                <span>Greeting size</span>
+                                <input
+                                    type="range"
+                                    data-setting="theme.sizeGreeting"
+                                    min="12"
+                                    max="120"
+                                    step="1"
+                                />
+                                <output data-output-for="theme.sizeGreeting"></output>
+                            </label>
+                        </div>
+
+                        <h2>Panel</h2>
+                        <div class="field-grid">
+                            <label class="field">
+                                <span>Background opacity</span>
+                                <input
+                                    type="range"
+                                    data-setting="panel.opacity"
+                                    min="0"
+                                    max="1"
+                                    step="0.05"
+                                />
+                                <output data-output-for="panel.opacity"></output>
+                            </label>
+                            <label class="field">
+                                <span>Backdrop blur</span>
+                                <input
+                                    type="range"
+                                    data-setting="panel.blur"
+                                    min="0"
+                                    max="40"
+                                    step="1"
+                                />
+                                <output data-output-for="panel.blur"></output>
+                            </label>
+                        </div>
+                    </section>
+
+                    <!-- Wallpaper -->
+                    <section class="settings-section" data-section="wallpaper">
+                        <h2>Wallpaper</h2>
+                        <p class="field-hint" id="wallpaper-current"></p>
+
+                        <div class="button-row">
+                            <label class="button">
+                                Pick an image&hellip;
+                                <input
+                                    type="file"
+                                    id="wallpaper-file"
+                                    accept="image/*"
+                                    hidden
+                                />
+                            </label>
+                            <button class="button" id="wallpaper-reset" type="button">
+                                Use bundled wallpaper
+                            </button>
+                        </div>
+
+                        <label class="field field-wide">
+                            <span>&hellip;or use an image URL</span>
+                            <span class="field-row">
+                                <input
+                                    type="text"
+                                    id="wallpaper-url"
+                                    placeholder="https://example.com/wallpaper.png"
+                                    spellcheck="false"
+                                />
+                                <button class="button" id="wallpaper-url-apply" type="button">
+                                    Use URL
+                                </button>
+                            </span>
+                        </label>
+                        <p class="field-hint">
+                            Images you pick are stored in this browser, so they keep
+                            working after the extension updates. Remote URLs need
+                            network access every time the page loads.
+                        </p>
+                    </section>
+
+                    <!-- Widgets -->
+                    <section class="settings-section" data-section="widgets">
+                        <h2>Clock</h2>
+                        <div class="field-grid">
+                            <label class="field field-checkbox">
+                                <input
+                                    type="checkbox"
+                                    data-setting="widgets.clock.enabled"
+                                />
+                                <span>Show the clock</span>
+                            </label>
+                            <label class="field">
+                                <span>Hour format</span>
+                                <select data-setting="widgets.clock.hourFormat">
+                                    <option value="auto">Follow locale</option>
+                                    <option value="12">12 hour</option>
+                                    <option value="24">24 hour</option>
+                                </select>
+                            </label>
+                        </div>
+
+                        <h2>Weather</h2>
+                        <div class="field-grid">
+                            <label class="field field-checkbox">
+                                <input
+                                    type="checkbox"
+                                    data-setting="widgets.weather.enabled"
+                                />
+                                <span>Show the weather</span>
+                            </label>
+                            <label class="field">
+                                <span>City</span>
+                                <span class="field-row">
+                                    <input
+                                        type="text"
+                                        id="weather-city"
+                                        list="weather-city-options"
+                                        placeholder="Valmontone"
+                                        spellcheck="false"
+                                    />
+                                    <datalist id="weather-city-options"></datalist>
+                                    <button class="button" id="weather-city-apply" type="button">
+                                        Set
+                                    </button>
+                                </span>
+                            </label>
+                            <label class="field">
+                                <span>API key</span>
+                                <input
+                                    type="text"
+                                    data-setting="widgets.weather.apiKey"
+                                    spellcheck="false"
+                                />
+                            </label>
+                        </div>
+                        <p class="field-hint" id="weather-status"></p>
+                    </section>
+
+                    <!-- Bookmarks -->
+                    <section class="settings-section" data-section="bookmarks">
+                        <div class="section-header">
+                            <h2>Categories &amp; bookmarks</h2>
+                            <button class="button" id="category-add" type="button">
+                                Add category
+                            </button>
+                        </div>
+                        <p class="field-hint">
+                            Drag a category or a bookmark to reorder it, or use the
+                            arrow buttons.
+                        </p>
+                        <div id="categories-editor" class="categories-editor"></div>
+                    </section>
+
+                    <!-- Data -->
+                    <section class="settings-section" data-section="data">
+                        <h2>Backup</h2>
+                        <p class="field-hint">
+                            Settings and bookmarks are stored by the browser, not in
+                            the code, so they survive extension updates. Export a copy
+                            if you want to move them elsewhere. A picked wallpaper
+                            image is not part of the export.
+                        </p>
+                        <div class="button-row">
+                            <button class="button" id="data-export" type="button">
+                                Export to file
+                            </button>
+                            <label class="button">
+                                Import from file&hellip;
+                                <input type="file" id="data-import" accept="application/json,.json" hidden />
+                            </label>
+                            <button class="button" id="data-copy" type="button">
+                                Copy to clipboard
+                            </button>
+                        </div>
+                        <label class="field field-wide">
+                            <span>Settings JSON</span>
+                            <textarea
+                                id="data-json"
+                                rows="12"
+                                spellcheck="false"
+                            ></textarea>
+                        </label>
+                        <div class="button-row">
+                            <button class="button" id="data-apply" type="button">
+                                Apply JSON
+                            </button>
+                            <button class="button button-danger" id="data-reset" type="button">
+                                Reset everything
+                            </button>
+                        </div>
+                        <p class="field-hint" id="data-status"></p>
+                    </section>
+                </div>
+
+                <div class="settings-toast" id="settings-toast" role="status" aria-live="polite"></div>
+            </div>
+        </div>
+
+        <script src="settings.js"></script>
+        <script src="bookmarks.js"></script>
         <script src="weather.js"></script>
         <script src="clock.js"></script>
         <script src="greeting.js"></script>
+        <script src="settings-ui.js"></script>
     </body>
 </html>

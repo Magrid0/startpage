@@ -282,14 +282,15 @@ function sanitizeBookmarks(value) {
             const links = Array.isArray(category.links) ? category.links : [];
             return {
                 name: asString(category.name, "untitled", 60) || "untitled",
+                // A bookmark without a URL is kept: that is what a freshly
+                // added, not yet filled in bookmark looks like.
                 links: links
                     .filter(isPlainObject)
                     .slice(0, 200)
                     .map((link) => ({
                         title: asString(link.title, "", 100),
                         url: normalizeUrl(link.url),
-                    }))
-                    .filter((link) => link.url),
+                    })),
             };
         });
 
@@ -430,6 +431,7 @@ const Settings = (() => {
             console.error("Could not read settings, using defaults:", error);
         }
         await apply();
+        notify();
         return state;
     }
 
@@ -454,6 +456,19 @@ const Settings = (() => {
         },
         get() {
             return state;
+        },
+        /** Describes the wallpaper currently in use, for the settings menu. */
+        async wallpaperInfo() {
+            let size = null;
+            if (state.wallpaper.mode === "file") {
+                try {
+                    const blob = await assetGet(WALLPAPER_ASSET);
+                    size = blob?.size ?? null;
+                } catch {
+                    size = null;
+                }
+            }
+            return { ...state.wallpaper, size };
         },
         subscribe(listener) {
             listeners.add(listener);
