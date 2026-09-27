@@ -68,6 +68,19 @@ const DEFAULTS = {
         blur: 7,
     },
 
+    // How the categories are arranged. Every value keeps the look it has today
+    // at 0, apart from the spacing, which starts at a readable 20px.
+    layout: {
+        // 0 lays the categories out in as many columns as fit.
+        columns: 0,
+        // Pixels between categories, and the gap the column count is built from.
+        gap: 20,
+        // 0 fits the panel to its content, anything else is a fixed width.
+        panelWidth: 0,
+        // Corner rounding of the panel.
+        radius: 16,
+    },
+
     // Darkening layer on top of the wallpaper, 0 to 1.
     wallpaperDim: 0,
 
@@ -326,6 +339,7 @@ function sanitize(input) {
     // "file" or "url" now means "no wallpaper".
     const mode = asEnum(wallpaper.mode, ["none", "file", "url"], "none");
     const url = mode === "url" ? normalizeUrl(wallpaper.url) : "";
+    const layout = isPlainObject(source.layout) ? source.layout : {};
 
     return {
         version: 1,
@@ -356,6 +370,12 @@ function sanitize(input) {
         panel: {
             opacity: asNumber(panel.opacity, 0.6, 0, 1),
             blur: asNumber(panel.blur, 7, 0, 40),
+        },
+        layout: {
+            columns: asNumber(layout.columns, 0, 0, 6),
+            gap: asNumber(layout.gap, 20, 0, 80),
+            panelWidth: asNumber(layout.panelWidth, 0, 0, 1600),
+            radius: asNumber(layout.radius, 16, 0, 60),
         },
         wallpaperDim: asNumber(source.wallpaperDim, 0, 0, 0.9),
         wallpaper: {
@@ -438,6 +458,20 @@ const Settings = (() => {
         setVar("--panel-opacity", String(state.panel.opacity));
         setVar("--panel-blur", `${state.panel.blur}px`);
         setVar("--wallpaper-dim", String(state.wallpaperDim));
+        setVar("--layout-gap", `${state.layout.gap}px`);
+        setVar("--layout-radius", `${state.layout.radius}px`);
+        // Zero columns means as many as fit, which is no maximum at all.
+        setVar(
+            "--layout-columns",
+            state.layout.columns > 0
+                ? `calc(${state.layout.columns} * (var(--category-width) + var(--layout-gap)) - var(--layout-gap))`
+                : "none",
+        );
+        // Zero width lets the panel shrink to whatever the bookmarks need.
+        setVar(
+            "--layout-panel-width",
+            state.layout.panelWidth > 0 ? `${state.layout.panelWidth}px` : "fit-content",
+        );
     }
 
     function notify() {

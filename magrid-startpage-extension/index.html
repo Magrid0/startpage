@@ -242,6 +242,59 @@
                                 <output data-output-for="panel.blur"></output>
                             </label>
                         </div>
+
+                        <h2>Layout</h2>
+                        <div class="field-grid">
+                            <label class="field">
+                                <span>Bookmark columns</span>
+                                <input
+                                    type="range"
+                                    data-setting="layout.columns"
+                                    min="0"
+                                    max="6"
+                                    step="1"
+                                />
+                                <output data-output-for="layout.columns"></output>
+                            </label>
+                            <label class="field">
+                                <span>Space between them</span>
+                                <input
+                                    type="range"
+                                    data-setting="layout.gap"
+                                    min="0"
+                                    max="80"
+                                    step="2"
+                                />
+                                <output data-output-for="layout.gap"></output>
+                            </label>
+                            <label class="field">
+                                <span>Panel width</span>
+                                <input
+                                    type="range"
+                                    data-setting="layout.panelWidth"
+                                    min="0"
+                                    max="1400"
+                                    step="20"
+                                />
+                                <output data-output-for="layout.panelWidth"></output>
+                            </label>
+                            <label class="field">
+                                <span>Corner rounding</span>
+                                <input
+                                    type="range"
+                                    data-setting="layout.radius"
+                                    min="0"
+                                    max="60"
+                                    step="2"
+                                />
+                                <output data-output-for="layout.radius"></output>
+                            </label>
+                        </div>
+                        <p class="field-hint">
+                            The column count wraps the categories onto as many
+                            rows as they need, and pinning the panel width keeps
+                            it the same however many bookmarks are in it.
+                        </p>
                     </section>
 
                     <!-- Wallpaper -->

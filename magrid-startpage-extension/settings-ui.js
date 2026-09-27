@@ -74,9 +74,14 @@ const SettingsUI = (() => {
         if (path === "panel.opacity" || path === "wallpaperDim") {
             return `${Math.round(value * 100)}%`;
         }
+        // Zero means "whatever fits", which is worth spelling out rather than
+        // showing a bare 0 next to a slider.
+        if (path === "layout.columns") return value > 0 ? String(value) : "any";
+        if (path === "layout.panelWidth") return value > 0 ? `${value}px` : "fits";
         if (path.startsWith("theme.size") || path === "panel.blur") {
             return `${value}px`;
         }
+        if (path.startsWith("layout.")) return `${value}px`;
         return String(value);
     }
 

@@ -20,6 +20,13 @@
     /* No wallpaper ships with the extension. Until you pick one, this is a
        transparent layer and you see the flat --color-bg. */
     --wallpaper: linear-gradient(transparent, transparent);
+    /* Layout, all driven from the settings menu. */
+    --category-width: 180px;
+    --layout-gap: 20px;
+    --layout-radius: 16px;
+    /* "none" for the column width means as many categories as fit. */
+    --layout-columns: none;
+    --layout-panel-width: fit-content;
 }
 
 html,
@@ -60,11 +67,17 @@ body {
     display: flex;
     flex-direction: row;
     background-color: rgba(0, 0, 0, var(--panel-opacity));
-    border-radius: 16px;
+    border-radius: var(--layout-radius);
     padding: 40px;
     box-shadow: 0 0 30px rgba(0, 0, 0, 0.4);
     backdrop-filter: blur(var(--panel-blur));
     -webkit-backdrop-filter: blur(var(--panel-blur));
+    /* "fit-content" unless the settings menu asks for a fixed width, and never
+       wider than the window however large that width is. The box is sized with
+       the padding included, so a panel width means the whole visible card. */
+    box-sizing: border-box;
+    width: min(var(--layout-panel-width), 92vw);
+    min-width: 0;
 }
 
 .left-container {
@@ -99,12 +112,17 @@ body {
 .category {
     display: flex;
     flex-direction: column;
-    width: 180px;
+    width: var(--category-width);
 }
 
 .bookmarks {
     display: flex;
     justify-content: center;
+    /* The column count from the settings menu is a maximum width: as many
+       categories as fit in it go on one row, the rest wrap. */
+    flex-wrap: wrap;
+    max-width: var(--layout-columns);
+    column-gap: var(--layout-gap);
 }
 
 .links {
