@@ -188,8 +188,12 @@ const SettingsUI = (() => {
                 close();
                 return;
             }
-            const typing = ["INPUT", "TEXTAREA", "SELECT"].includes(
-                document.activeElement?.tagName,
+            // Where the keystroke was aimed, and where focus sits: either one
+            // being a field means you were typing, not asking for the menu.
+            const typing = ["INPUT", "TEXTAREA", "SELECT"].some(
+                (tag) =>
+                    event.target?.tagName === tag ||
+                    document.activeElement?.tagName === tag,
             );
             // Uppercase S, so that a lower case "s" can still start a bookmark
             // filter. See filter.js.
@@ -213,32 +217,176 @@ const SettingsUI = (() => {
         const info = await Settings.wallpaperInfo();
         const labels = {
             none: "No wallpaper set, so the background is a flat colour",
-            file: info.size
+            image: info.size
                 ? `Using your image (${formatSize(info.size)})`
                 : "Your image could not be found, so the background is a flat colour",
             url: `Using ${info.url}`,
-            gradient: "Using the background from a preset",
+            gradient: "Using a background from a preset",
         };
         els.wallpaperCurrent.textContent = labels[info.mode] ?? labels.none;
-        // An image that a preset or a URL only set aside is still in storage,
-        // so offer to put it back rather than making them pick it again.
-        els.wallpaperRestoreRow.hidden = !info.stored || info.mode === "file";
+        // The picture you picked last, if something else put it aside, so offer
+        // to put it back rather than making them pick the file again.
+        els.wallpaperRestoreRow.hidden = !info.restore;
+    }
+
+    // --- presets -------------------------------------------------------------
+
+    /**
+     * The CSS background for a preview, so a card looks like the look it saves.
+     * A picture is the one thing that needs reading from the image library
+     * first, so it arrives later, as an object URL from renderGallery; until
+     * then, and for a look with no background at all, the card shows the flat
+     * page colour.
+     */
+    function previewBackground(wallpaper) {
+        if (wallpaper.mode === "gradient") return wallpaper.gradient;
+        if (wallpaper.mode === "url" && wallpaper.url) {
+            return `url("${wallpaper.url.replace(/["\\\n\r]/g, "")}")`;
+        }
+        return "linear-gradient(#2b2b2b, #2b2b2b)";
+    }
+
+    // Object URLs made for the previews, revoked when the gallery is drawn
+    // again, so looking at a gallery full of pictures does not leak them.
+    let previewUrls = [];
+
+    function revokePreviews() {
+        for (const url of previewUrls) URL.revokeObjectURL(url);
+        previewUrls = [];
+    }
+
+    // Which draw of the gallery is the current one. A draw that is still
+    // reading a picture when a newer one starts is stale: its cards are gone
+    // from the page, and the URL it was about to use has to be handed straight
+    // back rather than kept. Dragging a colour slider redraws the gallery many
+    // times a second, so this is a real case and not a theoretical one.
+    let galleryDraw = 0;
+
+    /** A card for one saved preset: what it looks like, and what you can do. */
+    function presetCard(preset, index) {
+        const card = document.createElement("article");
+        card.className = "preset-card";
+        card.dataset.index = index;
+
+        const preview = document.createElement("div");
+        preview.className = "preset-preview";
+        preview.style.background = previewBackground(preset.wallpaper);
+        // The panel sitting on the background, with sample text in the preset's
+        // own colours: enough to tell two presets that share a background apart.
+        const sample = document.createElement("div");
+        sample.className = "preset-sample";
+        sample.style.background = `rgba(0, 0, 0, ${preset.panel.opacity})`;
+        sample.style.backdropFilter = `blur(${Math.min(preset.panel.blur, 4)}px)`;
+        sample.style.color = preset.theme.colorFg;
+        const title = document.createElement("b");
+        title.style.color = preset.theme.colorTitle;
+        title.textContent = "general";
+        const link = document.createElement("span");
+        link.style.color = preset.theme.colorLink;
+        link.textContent = "gmail";
+        const hover = document.createElement("span");
+        hover.style.color = preset.theme.colorLinkHover;
+        hover.textContent = "docs";
+        const visited = document.createElement("span");
+        visited.style.color = preset.theme.colorLinkVisited;
+        visited.textContent = "reddit";
+        sample.append(title, link, hover, visited);
+        preview.append(sample);
+
+        const name = document.createElement("input");
+        name.type = "text";
+        name.className = "preset-name";
+        name.value = preset.name;
+        name.maxLength = 30;
+        name.title = "Change this and the preset is renamed";
+        name.setAttribute("aria-label", "Preset name");
+
+        const actions = document.createElement("div");
+        actions.className = "button-row";
+        const button = (action, label, extra = "") => {
+            const node = document.createElement("button");
+            node.type = "button";
+            node.className = `button ${extra}`.trim();
+            node.dataset.action = action;
+            node.textContent = label;
+            return node;
+        };
+        // No rename button: the name field above is the rename, and a control
+        // that only does what the field already does is clutter.
+        actions.append(
+            button("use", "Use it", "button-primary"),
+            button("update", "Update", "button-small"),
+            button("delete", "Delete", "button-small button-danger"),
+        );
+
+        card.append(preview, name, actions);
+        return card;
     }
 
     /**
-     * Builds the preset buttons from the data in presets.js, each one showing
-     * the background it will apply, so adding a preset needs no markup.
+     * Draws the gallery: the looks you saved, with a card each. A preset whose
+     * background is one of your own pictures needs its blob read to show it, so
+     * this is async and the pictures arrive a moment later.
      */
-    function renderPresets() {
+    async function renderGallery() {
+        if (!els.presetGallery) return;
+        const presets = Settings.get().presets;
+        const draw = ++galleryDraw;
+        revokePreviews();
+
+        if (!presets.length) {
+            els.presetGallery.replaceChildren();
+            els.presetGallery.hidden = true;
+            els.presetEmpty.hidden = false;
+            return;
+        }
+
+        const cards = presets.map((preset, index) => presetCard(preset, index));
+        els.presetGallery.replaceChildren(...cards);
+        els.presetGallery.hidden = false;
+        els.presetEmpty.hidden = true;
+
+        await Promise.all(
+            presets.map(async (preset, index) => {
+                if (preset.wallpaper.mode !== "image") return;
+                const url = await Settings.imageUrl(preset.wallpaper.image);
+                const card = cards[index];
+                if (!url) {
+                    if (galleryDraw !== draw) return;
+                    // The picture went, with the export or by hand. Say so on the
+                    // card rather than showing a blank one.
+                    card.classList.add("is-missing-image");
+                    const preview = card.querySelector(".preset-preview");
+                    preview.style.background = "linear-gradient(#2b2b2b, #2b2b2b)";
+                    preview.title = "The picture is not in this browser any more";
+                    return;
+                }
+                if (galleryDraw !== draw) {
+                    URL.revokeObjectURL(url);
+                    return;
+                }
+                previewUrls.push(url);
+                card.querySelector(".preset-preview").style.background =
+                    `url("${url}") center / cover`;
+            }),
+        );
+    }
+
+    /**
+     * The starter looks from presets.js, as a chip of the background each one
+     * applies. They come through the same sanitizer as your own presets, so a
+     * starter look and a saved one behave identically when clicked.
+     */
+    function renderStarterLooks() {
         if (!els.presetRow) return;
         els.presetRow.replaceChildren(
-            ...Presets.map((preset) => {
+            ...Settings.starterPresets().map((preset) => {
                 const button = document.createElement("button");
                 button.className = "preset";
                 button.type = "button";
-                button.dataset.preset = preset.id;
+                button.dataset.preset = preset.name;
                 button.title = `Apply the ${preset.name} colours, panel and background`;
-                button.style.background = preset.wallpaper;
+                button.style.background = previewBackground(preset.wallpaper);
                 button.style.setProperty("--preset-link", preset.theme.colorLink);
                 const label = document.createElement("span");
                 label.textContent = preset.name;
@@ -248,15 +396,65 @@ const SettingsUI = (() => {
         );
     }
 
-    function bindPresets() {
+    function bindGallery() {
+        // Saving the look on screen under a name. The field empties itself so
+        // the next save does not inherit the last name by accident.
+        els.presetSave?.addEventListener("click", async () => {
+            const typed = els.presetName.value;
+            const name = typed.trim() || "My look";
+            await mutate(() => Settings.savePreset(name));
+            els.presetName.value = "";
+            await renderGallery();
+            toast(`Saved as ${name}.`);
+        });
+
+        els.presetGallery?.addEventListener("click", async (event) => {
+            const button = event.target.closest("[data-action]");
+            if (!button) return;
+            const index = Number(button.closest(".preset-card").dataset.index);
+            const preset = Settings.get().presets[index];
+            if (!preset) return;
+
+            if (button.dataset.action === "use") {
+                await mutate(() => Settings.applyPreset(preset));
+                fillInputs();
+                refreshWallpaperInfo();
+                await renderGallery();
+                toast(`${preset.name} applied.`);
+            } else if (button.dataset.action === "update") {
+                await mutate(() => Settings.updatePreset(index));
+                await renderGallery();
+                toast(`${preset.name} updated.`);
+            } else if (button.dataset.action === "delete") {
+                await mutate(() => Settings.deletePreset(index));
+                await renderGallery();
+                toast(`${preset.name} deleted.`);
+            }
+        });
+
+        // Renaming is the name field: change it and the preset is renamed, so
+        // there is no separate dialog to keep in step with the gallery.
+        els.presetGallery?.addEventListener("change", async (event) => {
+            if (!event.target.classList.contains("preset-name")) return;
+            const index = Number(event.target.closest(".preset-card").dataset.index);
+            const name = event.target.value.trim();
+            await mutate(() => Settings.renamePreset(index, name));
+            await renderGallery();
+        });
+    }
+
+    function bindStarterLooks() {
         els.presetRow?.addEventListener("click", async (event) => {
             const button = event.target.closest(".preset");
             if (!button) return;
-            const preset = Presets.find((one) => one.id === button.dataset.preset);
+            const preset = Settings.starterPresets().find(
+                (one) => one.name === button.dataset.preset,
+            );
             if (!preset) return;
             await mutate(() => Settings.applyPreset(preset));
             fillInputs();
             refreshWallpaperInfo();
+            await renderGallery();
             toast(`${preset.name} applied.`);
         });
     }
@@ -809,6 +1007,10 @@ const SettingsUI = (() => {
         wallpaperUrlApply: "wallpaper-url-apply",
         wallpaperCurrent: "wallpaper-current",
         presetRow: "preset-row",
+        presetGallery: "preset-gallery",
+        presetEmpty: "preset-empty",
+        presetName: "preset-name",
+        presetSave: "preset-save",
         weatherCity: "weather-city",
         weatherCityApply: "weather-city-apply",
         cityOptions: "weather-city-options",
@@ -834,8 +1036,9 @@ const SettingsUI = (() => {
         cacheElements();
         bindModal();
         bindSettingInputs();
-        renderPresets();
-        bindPresets();
+        renderStarterLooks();
+        bindStarterLooks();
+        bindGallery();
         bindWallpaper();
         bindWeather();
         bindEditor();
@@ -847,12 +1050,14 @@ const SettingsUI = (() => {
             fillInputs();
             refreshWallpaperInfo();
             renderEditor();
+            renderGallery();
         });
 
         Settings.ready.then(() => {
             fillInputs();
             renderEditor();
             refreshWallpaperInfo();
+            renderGallery();
         });
     }
 
