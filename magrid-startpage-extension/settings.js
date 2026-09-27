@@ -296,6 +296,91 @@ const assetKeys = () =>
 
 const imageKey = (id) => `${IMAGE_PREFIX}${id}`;
 
+/**
+ * How big a picture is allowed to be before it is made smaller.
+ *
+ * A wallpaper is scaled to fill the screen, so an 8 MB picture from a phone is
+ * mostly pixels nobody ever sees, and every one of them is decoded again on
+ * every new tab. Anything at or below this is stored exactly as you picked it,
+ * so an ordinary image is never touched.
+ */
+const IMAGE_MAX_BYTES = 2 * 1024 * 1024;
+
+/**
+ * The longest edge a stored picture may have, in CSS pixels at 1×.
+ *
+ * 2560 covers a 1440p screen and a 4K screen at 1.5×, which is as sharp as a
+ * background ever looks: it is scaled up and softened either way, and a photo
+ * has no detail to lose above the size of the display.
+ */
+const IMAGE_MAX_EDGE = 2560;
+
+/**
+ * What the last pick was made smaller from and to, so the settings menu can say
+ * so. Null when the last picture was stored exactly as it was picked, which is
+ * the normal case. It remembers which picture it is about, so it stops being
+ * relevant the moment something else is on screen.
+ */
+let lastShrink = null;
+
+/**
+ * Re-encodes a picture that is too big, and returns the file to store.
+ *
+ * The original comes back untouched whenever there is nothing to gain: a
+ * picture already under the size limit, or one that cannot be decoded or
+ * re-encoded at all. A wallpaper that fails to shrink is still a wallpaper, and
+ * losing your picture to save space would be a bad trade.
+ *
+ * WebP first, because it is the smaller of the two at the quality a background
+ * needs, and JPEG as the fallback for a build or a decoder without it. Both
+ * keep the alpha channel a screenshot may rely on, which is the reason not to
+ * reach for JPEG as the only option.
+ */
+async function shrinkImage(file) {
+    if (!file || file.size <= IMAGE_MAX_BYTES) return file;
+    let bitmap;
+    try {
+        bitmap = await createImageBitmap(file);
+    } catch (error) {
+        // Not something this browser can decode, so not something it can
+        // re-encode either.
+        console.warn("Could not read the picture, storing it as it is:", error);
+        return file;
+    }
+    try {
+        // A picture already within the screen keeps its own size: making it
+        // smaller would only throw away detail the screen can still show.
+        const longest = Math.max(bitmap.width, bitmap.height);
+        const scale = Math.min(1, IMAGE_MAX_EDGE / longest);
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+        canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+        const context = canvas.getContext("2d");
+        // Some wallpapers are cut-out PNGs, so the transparency has to survive
+        // the trip through a canvas.
+        context.imageSmoothingQuality = "high";
+        context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+
+        const encoded = await new Promise((resolve) =>
+            canvas.toBlob(resolve, "image/webp", 0.85),
+        );
+        const fallback = encoded?.type === "image/webp"
+            ? encoded
+            : await new Promise((resolve) =>
+                  canvas.toBlob(resolve, "image/jpeg", 0.85),
+              );
+        // A re-encode that came out bigger, which a picture of flat colour can
+        // do, is not an improvement. Keep what you picked.
+        if (!fallback || fallback.size >= file.size) return file;
+        return fallback;
+    } catch (error) {
+        console.warn("Could not make the picture smaller, storing it as it is:", error);
+        return file;
+    } finally {
+        bitmap.close();
+    }
+}
+
 const assetExists = (id) =>
     assetGet(imageKey(id)).then((blob) => Boolean(blob), () => false);
 
@@ -790,7 +875,13 @@ const Settings = (() => {
                     wallpaper.lastImage !== wallpaper.image &&
                     (await assetExists(wallpaper.lastImage)),
             );
-            return { ...wallpaper, size, restore };
+            // What the last pick was made smaller from and to, so the menu can
+            // say so rather than let the size change quietly. Remembered
+            // against the picture it is about, so it stops being relevant the
+            // moment something else is on screen.
+            const shrink =
+                lastShrink?.image === wallpaper.image ? lastShrink : null;
+            return { ...wallpaper, size, restore, shrink };
         },
         /**
          * An object URL for a picture in the library, for a preview in the
@@ -849,15 +940,26 @@ const Settings = (() => {
          * Stores a picked picture in the image library and puts it on screen.
          * Every pick gets its own id, so two presets that share a wallpaper
          * share one copy of it rather than each keeping their own.
+         *
+         * A picture far bigger than the screen is made smaller first, so what
+         * is stored is what is worth showing rather than every pixel of a phone
+         * photo. A normal picture is stored exactly as you picked it.
          */
         async useWallpaperFile(file) {
             if (!file) return;
             if (!file.type.startsWith("image/")) {
                 throw new Error("That file is not an image.");
             }
+            const picture = await shrinkImage(file);
             const previous = state.wallpaper.image;
             const image = newImageId();
-            await assetPut(imageKey(image), file);
+            await assetPut(imageKey(image), picture);
+            // What actually got stored, so a large picture that was made
+            // smaller can say so instead of quietly changing size.
+            lastShrink =
+                picture === file
+                    ? null
+                    : { image, from: file.size, to: picture.size };
             state = sanitize(
                 merge(state, {
                     wallpaper: { mode: "image", image, lastImage: image },
