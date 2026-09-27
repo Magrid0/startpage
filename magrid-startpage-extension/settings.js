@@ -9,7 +9,7 @@
 //
 // The wallpaper image is deliberately NOT part of that object: a picked image
 // is kept in IndexedDB as a blob (storage.local only has a few MB to spend and
-// base64 inflates by a third) and only its "mode" is stored here.
+// base64 inflates by a third) and only the id of that blob is stored here.
 // ---------------------------------------------------------------------------
 
 const SETTINGS_KEY = "startpage.settings";
@@ -17,7 +17,12 @@ const SETTINGS_KEY = "startpage.settings";
 // Image blobs, kept out of the settings object.
 const DB_NAME = "magrid-startpage";
 const DB_STORE = "assets";
-const WALLPAPER_ASSET = "wallpaper";
+// Where the single picked image used to live, before presets could point at
+// images too. Read once, on load, and moved into the library.
+const LEGACY_WALLPAPER_ASSET = "wallpaper";
+// Every picked image gets an id of its own under this prefix, so two presets
+// that share a wallpaper share one copy of it on disk.
+const IMAGE_PREFIX = "wallpaper-image:";
 
 // There is no bundled wallpaper, so the page ships small and you bring your own
 // picture. With none set the background is a flat colour, and --wallpaper is a
@@ -85,12 +90,23 @@ const DEFAULTS = {
     wallpaperDim: 0,
 
     wallpaper: {
-        // "none" (flat background colour), "file" (IndexedDB blob), "url" or
-        // "gradient" (a CSS gradient, which is what the presets use).
+        // "none" (flat background colour), "image" (a picked picture in the
+        // image library), "url" or "gradient" (a CSS gradient, which is what
+        // the presets use).
         mode: "none",
+        // Which library image, when the mode is "image".
+        image: "",
+        // The last picture you picked, so a preset or a URL that put it aside
+        // can be undone with one button.
+        lastImage: "",
         url: "",
         gradient: "",
     },
+
+    // Looks you saved yourself: the colours, the panel and the background of
+    // the moment you hit save. They travel with the JSON export; the pictures
+    // they point at do not, because those live in IndexedDB.
+    presets: [],
 
     widgets: {
         weather: { ...DEFAULT_WEATHER },
@@ -213,17 +229,40 @@ async function storageClear() {
 
 // --- IndexedDB, for wallpaper blobs ----------------------------------------
 
+const DB_VERSION = 1;
+
+// Remembered once a database has been opened: a repair below raises the version
+// for good, and asking for an older one than the file has is an error.
+let dbVersion = DB_VERSION;
+
 function openDatabase() {
     return new Promise((resolve, reject) => {
-        const request = indexedDB.open(DB_NAME, 1);
-        request.onupgradeneeded = () => {
-            const db = request.result;
-            if (!db.objectStoreNames.contains(DB_STORE)) {
-                db.createObjectStore(DB_STORE);
-            }
+        const open = (version) => {
+            const request = indexedDB.open(DB_NAME, version);
+            request.onupgradeneeded = () => {
+                const db = request.result;
+                if (!db.objectStoreNames.contains(DB_STORE)) {
+                    db.createObjectStore(DB_STORE);
+                }
+            };
+            request.onsuccess = () => {
+                const db = request.result;
+                if (db.objectStoreNames.contains(DB_STORE)) {
+                    dbVersion = db.version;
+                    resolve(db);
+                    return;
+                }
+                // A database can sit at the right version and still have no
+                // store, if an earlier build created it differently. Asking for
+                // the next version is the only thing that runs an upgrade, so
+                // that is what puts the store back.
+                const next = db.version + 1;
+                db.close();
+                open(next);
+            };
+            request.onerror = () => reject(request.error);
         };
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
+        open(dbVersion);
     });
 }
 
@@ -247,6 +286,38 @@ const assetPut = (key, value) =>
     withStore("readwrite", (store) => store.put(value, key));
 const assetDelete = (key) =>
     withStore("readwrite", (store) => store.delete(key));
+const assetKeys = () =>
+    withStore("readonly", (store) => store.getAllKeys());
+
+// --- the image library ------------------------------------------------------
+// One copy of each picture you have picked, under an id of its own. The
+// wallpaper and every preset point at an id, so a look you save twice, or two
+// looks that share a wallpaper, cost one file between them.
+
+const imageKey = (id) => `${IMAGE_PREFIX}${id}`;
+
+const assetExists = (id) =>
+    assetGet(imageKey(id)).then((blob) => Boolean(blob), () => false);
+
+/** Deletes a picture, ignoring the failure rather than losing the whole action. */
+async function deleteImage(id) {
+    if (!id) return;
+    try {
+        await assetDelete(imageKey(id));
+    } catch (error) {
+        console.error("Could not delete the stored picture:", error);
+    }
+}
+
+/** Every id in the library, so a reset can empty it. */
+const imageIds = () =>
+    assetKeys()
+        .then((keys) =>
+            keys
+                .filter((key) => String(key).startsWith(IMAGE_PREFIX))
+                .map((key) => String(key).slice(IMAGE_PREFIX.length)),
+        )
+        .catch(() => []);
 
 // --- validation ------------------------------------------------------------
 // Anything coming from disk (or from an imported file the user may have edited
@@ -295,6 +366,15 @@ const asGradient = (value) => {
 const asBool = (value, fallback) =>
     typeof value === "boolean" ? value : fallback;
 
+/** The shape of an id handed out by `newImageId`, and nothing else. */
+const IMAGE_ID = /^img-[0-9a-f]{8}$/;
+
+const newImageId = () =>
+    `img-${crypto.randomUUID().replace(/-/g, "").slice(0, 8)}`;
+
+/** How many looks you can keep. Each is a handful of strings, so this is roomy. */
+const MAX_PRESETS = 24;
+
 const asNullableNumber = (value, fallback, min, max) =>
     value === null || value === undefined
         ? null
@@ -342,24 +422,81 @@ function sanitizeBookmarks(value) {
     return categories;
 }
 
+/**
+ * The wallpaper rules, in one place: the live wallpaper and every preset
+ * background are filtered the same way, so a preset can never hold something
+ * the wallpaper itself would have refused.
+ */
+function sanitizeWallpaper(input) {
+    const source = isPlainObject(input) ? input : {};
+    // "file" was the single picked image before the image library, and
+    // "default" was the bundled wallpaper, which no longer exists. Anything but
+    // a mode this build knows means "no wallpaper".
+    const wanted = asEnum(
+        source.mode,
+        ["none", "image", "url", "gradient"],
+        "none",
+    );
+    const image = asString(source.image, "", 40);
+    // A gradient that is not a gradient falls back to no wallpaper, and so
+    // does an image id that could not have come from the library.
+    const mode =
+        wanted === "gradient" && !asGradient(source.gradient)
+            ? "none"
+            : wanted === "image" && !IMAGE_ID.test(image)
+              ? "none"
+              : wanted;
+    // "lastImage" is the one field that survives a mode change: a preset or a
+    // URL puts your picture aside without forgetting which one it was.
+    const lastImage = asString(source.lastImage, "", 40);
+    return {
+        mode,
+        image: mode === "image" ? image : "",
+        lastImage: IMAGE_ID.test(lastImage) ? lastImage : "",
+        url: mode === "url" ? normalizeUrl(source.url) : "",
+        gradient: mode === "gradient" ? asGradient(source.gradient) : "",
+    };
+}
+
+/** A preset is a saved look: colours, panel and background, nothing else. */
+function sanitizePreset(input) {
+    const source = isPlainObject(input) ? input : {};
+    const theme = isPlainObject(source.theme) ? source.theme : {};
+    const panel = isPlainObject(source.panel) ? source.panel : {};
+    return {
+        name: asString(source.name, "", 30).trim() || "Untitled",
+        theme: {
+            colorFg: asColor(theme.colorFg, DEFAULTS.theme.colorFg),
+            colorTitle: asColor(theme.colorTitle, DEFAULTS.theme.colorTitle),
+            colorLink: asColor(theme.colorLink, DEFAULTS.theme.colorLink),
+            colorLinkHover: asColor(
+                theme.colorLinkHover,
+                DEFAULTS.theme.colorLinkHover,
+            ),
+            colorLinkVisited: asColor(
+                theme.colorLinkVisited,
+                DEFAULTS.theme.colorLinkVisited,
+            ),
+            colorWidget: asColor(theme.colorWidget, DEFAULTS.theme.colorWidget),
+        },
+        panel: {
+            opacity: asNumber(panel.opacity, DEFAULTS.panel.opacity, 0, 1),
+            blur: asNumber(panel.blur, DEFAULTS.panel.blur, 0, 40),
+        },
+        // A preset remembers the background it was saved with, never which
+        // picture you had picked before it: applying one puts your picture
+        // aside, it does not claim that picture as your last pick.
+        wallpaper: { ...sanitizeWallpaper(source.wallpaper), lastImage: "" },
+    };
+}
+
 function sanitize(input) {
     const source = isPlainObject(input) ? input : {};
     const theme = isPlainObject(source.theme) ? source.theme : {};
     const panel = isPlainObject(source.panel) ? source.panel : {};
-    const wallpaper = isPlainObject(source.wallpaper) ? source.wallpaper : {};
     const widgets = isPlainObject(source.widgets) ? source.widgets : {};
     const weather = isPlainObject(widgets.weather) ? widgets.weather : {};
     const clock = isPlainObject(widgets.clock) ? widgets.clock : {};
-
-    // "default" was the bundled wallpaper, which no longer exists: anything but
-    // a mode this build knows means "no wallpaper".
-    const mode = asEnum(
-        wallpaper.mode,
-        ["none", "file", "url", "gradient"],
-        "none",
-    );
-    const url = mode === "url" ? normalizeUrl(wallpaper.url) : "";
-    const gradient = asGradient(wallpaper.gradient);
     const layout = isPlainObject(source.layout) ? source.layout : {};
 
     return {
@@ -399,13 +536,7 @@ function sanitize(input) {
             radius: asNumber(layout.radius, 16, 0, 60),
         },
         wallpaperDim: asNumber(source.wallpaperDim, 0, 0, 0.9),
-        wallpaper: {
-            // A "file" wallpaper whose blob went missing falls back to "none",
-            // and so does a gradient that is not really a gradient.
-            mode: mode === "gradient" && !gradient ? "none" : mode,
-            url,
-            gradient: mode === "gradient" ? gradient : "",
-        },
+        wallpaper: sanitizeWallpaper(source.wallpaper),
         widgets: {
             weather: {
                 enabled: asBool(weather.enabled, true),
@@ -419,6 +550,9 @@ function sanitize(input) {
                 hourFormat: asEnum(clock.hourFormat, ["auto", "12", "24"], "auto"),
             },
         },
+        presets: Array.isArray(source.presets)
+            ? source.presets.slice(0, MAX_PRESETS).map(sanitizePreset)
+            : [],
         bookmarks: sanitizeBookmarks(source.bookmarks),
     };
 }
@@ -442,28 +576,30 @@ const Settings = (() => {
         return `url("${url.replace(/["\\\n\r]/g, "")}")`;
     }
 
-    async function applyWallpaper() {
-        const { mode, url, gradient } = state.wallpaper;
-        let image = NO_WALLPAPER;
-
-        if (mode === "url" && url) {
-            image = cssUrl(url);
-        } else if (mode === "gradient" && gradient) {
-            // Already a bare gradient, checked by sanitize on the way in.
-            image = gradient;
-        } else if (mode === "file") {
-            try {
-                const blob = await assetGet(WALLPAPER_ASSET);
-                if (blob) {
-                    if (wallpaperObjectUrl) URL.revokeObjectURL(wallpaperObjectUrl);
-                    wallpaperObjectUrl = URL.createObjectURL(blob);
-                    image = cssUrl(wallpaperObjectUrl);
-                }
-            } catch (error) {
-                console.error("Could not read the stored wallpaper:", error);
-            }
+    /**
+     * The CSS value for a wallpaper, or an empty string when the picture it
+     * points at is not in the library (a preset imported from another profile,
+     * or an image deleted by hand).
+     */
+    async function wallpaperImage(wallpaper) {
+        const { mode, url, gradient, image } = wallpaper;
+        if (mode === "url" && url) return cssUrl(url);
+        if (mode === "gradient" && gradient) return gradient;
+        if (mode !== "image" || !image) return "";
+        try {
+            const blob = await assetGet(imageKey(image));
+            if (!blob) return "";
+            if (wallpaperObjectUrl) URL.revokeObjectURL(wallpaperObjectUrl);
+            wallpaperObjectUrl = URL.createObjectURL(blob);
+            return cssUrl(wallpaperObjectUrl);
+        } catch (error) {
+            console.error("Could not read the stored wallpaper:", error);
+            return "";
         }
+    }
 
+    async function applyWallpaper() {
+        const image = (await wallpaperImage(state.wallpaper)) || NO_WALLPAPER;
         setVar("--wallpaper", image);
         // Lets the settings button nudge the user until a wallpaper is picked.
         root.dataset.wallpaper = image === NO_WALLPAPER ? "none" : "image";
@@ -504,15 +640,107 @@ const Settings = (() => {
         for (const listener of listeners) listener(state);
     }
 
+    /** The look on screen, in the shape a preset is saved in. */
+    function currentLook() {
+        return {
+            theme: {
+                colorFg: state.theme.colorFg,
+                colorTitle: state.theme.colorTitle,
+                colorLink: state.theme.colorLink,
+                colorLinkHover: state.theme.colorLinkHover,
+                colorLinkVisited: state.theme.colorLinkVisited,
+                colorWidget: state.theme.colorWidget,
+            },
+            panel: { ...state.panel },
+            wallpaper: { ...state.wallpaper },
+        };
+    }
+
+    const cleanName = (name) => {
+        const text = typeof name === "string" ? name : "";
+        return text.replace(/\s+/g, " ").trim().slice(0, 30);
+    };
+
+    /** Everything that could still be pointing at a picture. */
+    function imageIsUsed(id) {
+        if (!id) return false;
+        if (state.wallpaper.image === id) return true;
+        if (state.wallpaper.lastImage === id) return true;
+        return state.presets.some((preset) => preset.wallpaper.image === id);
+    }
+
+    /**
+     * Deletes a picture nothing points at any more. Call it after the settings
+     * have been saved, so "nothing points at it" is judged against the new
+     * state rather than the old one.
+     */
+    async function collectImage(id) {
+        if (!id || imageIsUsed(id)) return;
+        await deleteImage(id);
+    }
+
+    /**
+     * Empties the library of pictures nothing points at. Pictures are the only
+     * part of your settings that take real space, so a settings file that stops
+     * mentioning one should not leave the file itself behind for ever.
+     */
+    async function collectUnusedImages() {
+        for (const id of await imageIds()) await collectImage(id);
+    }
+
+    /** The one way this module changes the settings: merge, save, apply, tell. */
+    async function commit(patch) {
+        state = sanitize(merge(state, patch));
+        await storageWrite(state);
+        await apply();
+        notify();
+        return state;
+    }
+
     async function apply() {
         applyTheme();
         await applyWallpaper();
     }
 
+    /**
+     * Older builds kept the picked image under one fixed key, with no way for a
+     * preset to point at it. Moves that image into the library once, on load,
+     * so an existing wallpaper survives the upgrade and every preset can
+     * reference it.
+     */
+    async function adoptLegacyWallpaper(stored) {
+        if (stored?.wallpaper?.mode !== "file") return stored;
+        let blob = null;
+        try {
+            blob = await assetGet(LEGACY_WALLPAPER_ASSET);
+        } catch (error) {
+            console.error("Could not read the stored wallpaper:", error);
+        }
+        const image = blob ? newImageId() : "";
+        if (blob) await assetPut(imageKey(image), blob);
+        try {
+            await assetDelete(LEGACY_WALLPAPER_ASSET);
+        } catch (error) {
+            console.error("Could not remove the old wallpaper key:", error);
+        }
+        return merge(stored, {
+            wallpaper: {
+                mode: blob ? "image" : "none",
+                image,
+                lastImage: image,
+            },
+        });
+    }
+
     async function load() {
         try {
             const stored = await storageRead();
-            if (stored) state = sanitize(stored);
+            if (stored) {
+                const adopted = await adoptLegacyWallpaper(stored);
+                state = sanitize(adopted);
+                // Only write back if the picture actually moved.
+                if (adopted !== stored) await storageWrite(state);
+            }
         } catch (error) {
             console.error("Could not read settings, using defaults:", error);
         }
@@ -545,41 +773,54 @@ const Settings = (() => {
         },
         /** Describes the wallpaper currently in use, for the settings menu. */
         async wallpaperInfo() {
+            const wallpaper = state.wallpaper;
             let size = null;
-            // Whether an image is still stored, even if something else is on
-            // screen: applying a preset only sets the stored image aside.
-            let stored = false;
-            try {
-                const blob = await assetGet(WALLPAPER_ASSET);
-                stored = Boolean(blob);
-                if (blob && state.wallpaper.mode === "file") size = blob.size;
-            } catch {
-                size = null;
+            if (wallpaper.mode === "image" && wallpaper.image) {
+                try {
+                    size = (await assetGet(imageKey(wallpaper.image)))?.size ?? null;
+                } catch {
+                    size = null;
+                }
             }
-            return { ...state.wallpaper, size, stored };
+            // The picture you picked last, if it is still in the library and is
+            // not the one already on screen: that is what a preset or a URL put
+            // aside, and what the "use my image again" button brings back.
+            const restore = Boolean(
+                wallpaper.lastImage &&
+                    wallpaper.lastImage !== wallpaper.image &&
+                    (await assetExists(wallpaper.lastImage)),
+            );
+            return { ...wallpaper, size, restore };
+        },
+        /**
+         * An object URL for a picture in the library, for a preview in the
+         * settings menu. Empty when the picture is not there. The caller owns
+         * the URL and should revoke it, since the wallpaper's own URL is
+         * revoked whenever the wallpaper changes.
+         */
+        async imageUrl(id) {
+            if (!IMAGE_ID.test(id)) return "";
+            try {
+                const blob = await assetGet(imageKey(id));
+                return blob ? URL.createObjectURL(blob) : "";
+            } catch {
+                return "";
+            }
         },
         subscribe(listener) {
             listeners.add(listener);
             return () => listeners.delete(listener);
         },
         /** Merges a patch into the settings, saves and applies it. */
-        async set(patch) {
-            state = sanitize(merge(state, patch));
-            await storageWrite(state);
-            await apply();
-            notify();
-            return state;
+        set(patch) {
+            return commit(patch);
         },
         async reset() {
             state = sanitize(DEFAULTS);
             await storageClear();
-            // A reset is meant to be a clean slate, so the stored image goes
-            // with it. Applying a preset is the way to set it aside instead.
-            try {
-                await assetDelete(WALLPAPER_ASSET);
-            } catch (error) {
-                console.error("Could not delete the stored wallpaper:", error);
-            }
+            // A reset is meant to be a clean slate, so every picture goes with
+            // it. Applying a preset is the way to set one aside instead.
+            await collectUnusedImages();
             if (wallpaperObjectUrl) {
                 URL.revokeObjectURL(wallpaperObjectUrl);
                 wallpaperObjectUrl = null;
@@ -597,82 +838,178 @@ const Settings = (() => {
             await storageWrite(state);
             await apply();
             notify();
+            // An export carries no pictures, so a file that came from another
+            // browser leaves the library here to be cleaned out rather than
+            // sitting on disk for ever.
+            await collectUnusedImages();
             return state;
         },
         // --- wallpaper helpers ---
+        /**
+         * Stores a picked picture in the image library and puts it on screen.
+         * Every pick gets its own id, so two presets that share a wallpaper
+         * share one copy of it rather than each keeping their own.
+         */
         async useWallpaperFile(file) {
             if (!file) return;
             if (!file.type.startsWith("image/")) {
                 throw new Error("That file is not an image.");
             }
-            await assetPut(WALLPAPER_ASSET, file);
-            state = sanitize(merge(state, { wallpaper: { mode: "file" } }));
+            const previous = state.wallpaper.image;
+            const image = newImageId();
+            await assetPut(imageKey(image), file);
+            state = sanitize(
+                merge(state, {
+                    wallpaper: { mode: "image", image, lastImage: image },
+                }),
+            );
             await storageWrite(state);
             await apply();
             notify();
+            await collectImage(previous);
         },
         async useWallpaperUrl(url) {
             const normalized = normalizeUrl(url);
             if (!normalized) throw new Error("That does not look like a URL.");
+            const previous = state.wallpaper.image;
             state = sanitize(
                 merge(state, { wallpaper: { mode: "url", url: normalized } }),
             );
             await storageWrite(state);
             await apply();
             notify();
+            await collectImage(previous);
         },
+        /**
+         * Takes the current background away, and forgets the picture behind it,
+         * so the file is deleted once no preset needs it any more. Applying a
+         * preset is the way to set your picture aside instead of losing it.
+         */
         async clearWallpaper() {
-            try {
-                await assetDelete(WALLPAPER_ASSET);
-            } catch (error) {
-                console.error("Could not delete the stored wallpaper:", error);
-            }
-            if (wallpaperObjectUrl) {
-                URL.revokeObjectURL(wallpaperObjectUrl);
-                wallpaperObjectUrl = null;
-            }
-            state = sanitize(
-                merge(state, { wallpaper: { mode: "none", url: "", gradient: "" } }),
-            );
-            await storageWrite(state);
-            await apply();
-            notify();
-        },
-        /**
-         * Puts a stored image back on screen. Applying a preset or switching to
-         * a URL only sets it aside, so this brings it back without re-picking.
-         */
-        async restoreWallpaper() {
-            const blob = await assetGet(WALLPAPER_ASSET);
-            if (!blob) throw new Error("There is no stored image to bring back.");
-            state = sanitize(merge(state, { wallpaper: { mode: "file" } }));
-            await storageWrite(state);
-            await apply();
-            notify();
-        },
-        /**
-         * Applies a theme preset: every colour, the panel and the wallpaper it
-         * was designed with. Anything a preset does not mention, such as the
-         * font sizes or the bookmarks, is left alone.
-         */
-        async applyPreset(preset) {
-            if (!preset?.theme || !preset?.wallpaper) {
-                throw new Error("That is not a theme preset.");
-            }
+            const previous = state.wallpaper.image;
             state = sanitize(
                 merge(state, {
-                    theme: { ...preset.theme },
-                    panel: { ...preset.panel },
                     wallpaper: {
-                        mode: "gradient",
-                        gradient: preset.wallpaper,
+                        mode: "none",
+                        image: "",
+                        lastImage: "",
                         url: "",
+                        gradient: "",
                     },
                 }),
             );
             await storageWrite(state);
             await apply();
             notify();
+            if (wallpaperObjectUrl) {
+                URL.revokeObjectURL(wallpaperObjectUrl);
+                wallpaperObjectUrl = null;
+            }
+            await collectImage(previous);
+        },
+        /**
+         * Puts the picture you picked last back on screen. Applying a preset or
+         * switching to a URL only sets it aside, so this brings it back without
+         * re-picking the file.
+         */
+        async restoreWallpaper() {
+            const image = state.wallpaper.lastImage;
+            if (!image) throw new Error("There is no image to bring back.");
+            state = sanitize(merge(state, { wallpaper: { mode: "image", image } }));
+            await storageWrite(state);
+            await apply();
+            notify();
+        },
+        // --- presets ---
+        /**
+         * Saves the look on screen as a preset: the six colours, how much the
+         * panel shows through, and the background. Everything else you have set
+         * up, fonts and bookmarks included, is left as it is.
+         */
+        async savePreset(name) {
+            if (state.presets.length >= MAX_PRESETS) {
+                throw new Error(
+                    `There is room for ${MAX_PRESETS} presets. Delete one first.`,
+                );
+            }
+            const preset = { ...currentLook(), name: cleanName(name) };
+            await commit({ presets: [...state.presets, preset] });
+            return preset;
+        },
+        /** Overwrites a preset with the look on screen, keeping its name. */
+        async updatePreset(index) {
+            const existing = state.presets[index];
+            if (!existing) throw new Error("There is no preset at that position.");
+            const presets = state.presets.slice();
+            presets[index] = { ...currentLook(), name: existing.name };
+            const previous = existing.wallpaper.image;
+            await commit({ presets });
+            await collectImage(previous);
+            return presets[index];
+        },
+        async renamePreset(index, name) {
+            const existing = state.presets[index];
+            if (!existing) throw new Error("There is no preset at that position.");
+            const presets = state.presets.slice();
+            presets[index] = { ...existing, name: cleanName(name) };
+            await commit({ presets });
+            return presets[index];
+        },
+        async deletePreset(index) {
+            const existing = state.presets[index];
+            if (!existing) throw new Error("There is no preset at that position.");
+            const presets = state.presets.slice();
+            presets.splice(index, 1);
+            const forgotten = existing.wallpaper.image;
+            await commit({ presets });
+            await collectImage(forgotten);
+        },
+        /**
+         * Applies a preset: every colour, the panel and the background it was
+         * saved with, so the two can never drift apart. Anything a preset does
+         * not mention, such as the font sizes or the bookmarks, is left alone.
+         *
+         * Your own picture is only set aside, never deleted, and the wallpaper
+         * tab can still bring it back. A preset whose picture is not in the
+         * library, one imported from another browser for instance, keeps the
+         * background already on screen rather than blanking it.
+         */
+        async applyPreset(preset) {
+            const look = preset?.theme ? sanitizePreset(preset) : null;
+            if (!look) throw new Error("That is not a theme preset.");
+            const wallpaper =
+                look.wallpaper.mode === "image" &&
+                !(await assetExists(look.wallpaper.image))
+                    ? state.wallpaper
+                    : look.wallpaper;
+            await commit({
+                theme: look.theme,
+                panel: look.panel,
+                // The preset brings back the background it was saved with, while
+                // the pointer to the picture you picked last is yours and stays.
+                wallpaper: {
+                    ...wallpaper,
+                    lastImage: state.wallpaper.lastImage,
+                },
+            });
+            return look;
+        },
+        /**
+         * The ready made looks from presets.js, in the shape a saved preset
+         * takes, so the same code applies both and the gallery can show what a
+         * starter look will do before you click it.
+         */
+        starterPresets() {
+            return Presets.map((preset) =>
+                sanitizePreset({
+                    name: preset.name,
+                    theme: preset.theme,
+                    panel: preset.panel,
+                    // A starter look carries a gradient, never a picture, so
+                    // nothing here reaches for the image library.
+                    wallpaper: { mode: "gradient", gradient: preset.wallpaper },
+                }),
+            );
         },
     };
 })();
