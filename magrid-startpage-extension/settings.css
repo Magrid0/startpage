@@ -41,6 +41,28 @@
     transform: rotate(20deg);
 }
 
+/* No wallpaper ships with the extension, so draw a little attention to the gear
+   until one is picked and the menu has been opened once. */
+@keyframes settings-nudge {
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 rgba(131, 165, 152, 0);
+    }
+    50% {
+        box-shadow: 0 0 0 6px rgba(131, 165, 152, 0.2);
+    }
+}
+
+:root[data-wallpaper="none"] .settings-button:not([data-seen]) {
+    animation: settings-nudge 2s ease-in-out 4;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    :root[data-wallpaper="none"] .settings-button:not([data-seen]) {
+        animation: none;
+    }
+}
+
 .settings-overlay {
     position: fixed;
     inset: 0;

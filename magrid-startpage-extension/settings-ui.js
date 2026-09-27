@@ -137,6 +137,8 @@ const SettingsUI = (() => {
 
     function open() {
         els.overlay.hidden = false;
+        // Having seen the menu, stop the gear pulsing about the wallpaper.
+        els.button.dataset.seen = "";
         fillInputs();
         refreshWallpaperInfo();
         refreshJson();

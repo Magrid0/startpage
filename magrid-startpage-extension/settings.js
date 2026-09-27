@@ -407,6 +407,8 @@ const Settings = (() => {
         }
 
         setVar("--wallpaper", image);
+        // Lets the settings button nudge the user until a wallpaper is picked.
+        root.dataset.wallpaper = image === NO_WALLPAPER ? "none" : "image";
     }
 
     function applyTheme() {
