@@ -650,13 +650,21 @@ const Settings = (() => {
 
     let state = sanitize(DEFAULTS);
     let wallpaperObjectUrl = null;
+    let wallpaperObjectImage = "";
     let ready;
     // Told about every write this tab makes, so the storage listener can pick
     // its own echo out from a change made by another tab. Only set when that
     // listener is in use.
     let onWrite = null;
 
+    /**
+     * Sets a custom property, and does nothing at all if it already holds that
+     * value. Writing a property the value it already has is not free: it dirties
+     * the property and the browser recalculates the style of everything that
+     * reads it, which for the properties below is the whole page.
+     */
     function setVar(name, value) {
+        if (root.style.getPropertyValue(name) === value) return;
         root.style.setProperty(name, value);
     }
 
@@ -675,10 +683,23 @@ const Settings = (() => {
         if (mode === "url" && url) return cssUrl(url);
         if (mode === "gradient" && gradient) return gradient;
         if (mode !== "image" || !image) return "";
+        // The picture is already in hand and the URL made for it is still live,
+        // so there is nothing to read again. Dragging a slider writes the
+        // settings many times a second and none of it is about the picture.
+        if (image === wallpaperObjectImage && wallpaperObjectUrl) {
+            return cssUrl(wallpaperObjectUrl);
+        }
         try {
             const blob = await assetGet(imageKey(image));
-            if (!blob) return "";
+            if (!blob) {
+                // Gone from the library, so the URL made for it is dead weight.
+                if (wallpaperObjectUrl) URL.revokeObjectURL(wallpaperObjectUrl);
+                wallpaperObjectUrl = null;
+                wallpaperObjectImage = "";
+                return "";
+            }
             if (wallpaperObjectUrl) URL.revokeObjectURL(wallpaperObjectUrl);
+            wallpaperObjectImage = image;
             wallpaperObjectUrl = URL.createObjectURL(blob);
             return cssUrl(wallpaperObjectUrl);
         } catch (error) {
