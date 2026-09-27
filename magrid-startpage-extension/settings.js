@@ -235,10 +235,16 @@ const pick = (value, fallback, test) =>
 const asColor = (value, fallback) =>
     pick(value, fallback, (v) => typeof v === "string" && HEX_COLOR.test(v));
 
+/**
+ * Accepts a number, or a numeric string, inside the allowed range. Out of range
+ * values fall back to the default rather than being clamped: every other
+ * invalid value does the same, so "bad input, back to default" is one rule.
+ */
 const asNumber = (value, fallback, min, max) => {
     const n = typeof value === "string" ? Number(value) : value;
     if (typeof n !== "number" || !Number.isFinite(n)) return fallback;
-    return Math.min(max, Math.max(min, n));
+    if (n < min || n > max) return fallback;
+    return n;
 };
 
 const asString = (value, fallback, maxLength = 200) =>
