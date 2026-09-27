@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Magrid Startpage",
-  "version": "1.8.35",
+  "version": "1.9.0",
   "description": "Replaces homescreen and newtab with my personal start page.",
   "chrome_url_overrides": {
     "newtab": "index.html"
@@ -10,7 +10,7 @@
     "homepage": "index.html"
   },
   "permissions": ["storage"],
-  "host_permissions": ["https://api.nasa.gov/"],
+  "host_permissions": ["https://api.openweathermap.org/"],
   "action": {
     "default_title": "Magrid Startpage"
   },
