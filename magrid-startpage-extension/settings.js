@@ -85,9 +85,12 @@ const DEFAULTS = {
     wallpaperDim: 0,
 
     wallpaper: {
-        // "none" (flat background colour), "file" (IndexedDB blob) or "url".
+        // "none" (flat background colour), "file" (IndexedDB blob), "url" or
+        // "gradient" (a plain CSS gradient, for a background that is not an
+        // image at all).
         mode: "none",
         url: "",
+        gradient: "",
     },
 
     widgets: {
@@ -276,6 +279,20 @@ const asString = (value, fallback, maxLength = 200) =>
 const asEnum = (value, allowed, fallback) =>
     allowed.includes(value) ? value : fallback;
 
+/**
+ * Accepts a bare CSS gradient such as "linear-gradient(160deg, #2e3440, #436)".
+ * Only the gradient functions and a short argument list get through, so a
+ * gradient can never carry a url(), a semicolon or anything else into the
+ * background-image.
+ */
+const GRADIENT = /^(?:linear|radial|conic)-gradient\([^()]*\)$/i;
+
+const asGradient = (value) => {
+    if (typeof value !== "string" || value.length > 240) return "";
+    const trimmed = value.trim();
+    return GRADIENT.test(trimmed) ? trimmed : "";
+};
+
 const asBool = (value, fallback) =>
     typeof value === "boolean" ? value : fallback;
 
@@ -336,9 +353,14 @@ function sanitize(input) {
     const clock = isPlainObject(widgets.clock) ? widgets.clock : {};
 
     // "default" was the bundled wallpaper, which no longer exists: anything but
-    // "file" or "url" now means "no wallpaper".
-    const mode = asEnum(wallpaper.mode, ["none", "file", "url"], "none");
+    // a mode this build knows means "no wallpaper".
+    const mode = asEnum(
+        wallpaper.mode,
+        ["none", "file", "url", "gradient"],
+        "none",
+    );
     const url = mode === "url" ? normalizeUrl(wallpaper.url) : "";
+    const gradient = asGradient(wallpaper.gradient);
     const layout = isPlainObject(source.layout) ? source.layout : {};
 
     return {
@@ -379,9 +401,11 @@ function sanitize(input) {
         },
         wallpaperDim: asNumber(source.wallpaperDim, 0, 0, 0.9),
         wallpaper: {
-            // A "file" wallpaper whose blob went missing falls back to "none".
-            mode,
+            // A "file" wallpaper whose blob went missing falls back to "none",
+            // and so does a gradient that is not really a gradient.
+            mode: mode === "gradient" && !gradient ? "none" : mode,
             url,
+            gradient: mode === "gradient" ? gradient : "",
         },
         widgets: {
             weather: {
@@ -420,11 +444,14 @@ const Settings = (() => {
     }
 
     async function applyWallpaper() {
-        const { mode, url } = state.wallpaper;
+        const { mode, url, gradient } = state.wallpaper;
         let image = NO_WALLPAPER;
 
         if (mode === "url" && url) {
             image = cssUrl(url);
+        } else if (mode === "gradient" && gradient) {
+            // Already a bare gradient, checked by sanitize on the way in.
+            image = gradient;
         } else if (mode === "file") {
             try {
                 const blob = await assetGet(WALLPAPER_ASSET);
@@ -520,15 +547,17 @@ const Settings = (() => {
         /** Describes the wallpaper currently in use, for the settings menu. */
         async wallpaperInfo() {
             let size = null;
-            if (state.wallpaper.mode === "file") {
-                try {
-                    const blob = await assetGet(WALLPAPER_ASSET);
-                    size = blob?.size ?? null;
-                } catch {
-                    size = null;
-                }
+            // Whether an image is still stored, even if something else is on
+            // screen: choosing another background only sets it aside.
+            let stored = false;
+            try {
+                const blob = await assetGet(WALLPAPER_ASSET);
+                stored = Boolean(blob);
+                if (blob && state.wallpaper.mode === "file") size = blob.size;
+            } catch {
+                size = null;
             }
-            return { ...state.wallpaper, size };
+            return { ...state.wallpaper, size, stored };
         },
         subscribe(listener) {
             listeners.add(listener);
@@ -545,6 +574,17 @@ const Settings = (() => {
         async reset() {
             state = sanitize(DEFAULTS);
             await storageClear();
+            // A reset is meant to be a clean slate, so the stored image goes
+            // with it. Choosing another background is how you set it aside.
+            try {
+                await assetDelete(WALLPAPER_ASSET);
+            } catch (error) {
+                console.error("Could not delete the stored wallpaper:", error);
+            }
+            if (wallpaperObjectUrl) {
+                URL.revokeObjectURL(wallpaperObjectUrl);
+                wallpaperObjectUrl = null;
+            }
             await apply();
             notify();
             return state;
@@ -593,8 +633,20 @@ const Settings = (() => {
                 wallpaperObjectUrl = null;
             }
             state = sanitize(
-                merge(state, { wallpaper: { mode: "none", url: "" } }),
+                merge(state, { wallpaper: { mode: "none", url: "", gradient: "" } }),
             );
+            await storageWrite(state);
+            await apply();
+            notify();
+        },
+        /**
+         * Puts a stored image back on screen. Switching to a URL or a gradient
+         * only sets it aside, so this brings it back without re-picking.
+         */
+        async restoreWallpaper() {
+            const blob = await assetGet(WALLPAPER_ASSET);
+            if (!blob) throw new Error("There is no stored image to bring back.");
+            state = sanitize(merge(state, { wallpaper: { mode: "file" } }));
             await storageWrite(state);
             await apply();
             notify();

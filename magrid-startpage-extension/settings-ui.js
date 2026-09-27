@@ -78,10 +78,10 @@ const SettingsUI = (() => {
         // showing a bare 0 next to a slider.
         if (path === "layout.columns") return value > 0 ? String(value) : "any";
         if (path === "layout.panelWidth") return value > 0 ? `${value}px` : "fits";
-        if (path.startsWith("theme.size") || path === "panel.blur") {
+        if (path.startsWith("theme.size") || path.startsWith("layout.")) {
             return `${value}px`;
         }
-        if (path.startsWith("layout.")) return `${value}px`;
+        if (path === "panel.blur") return `${value}px`;
         return String(value);
     }
 
@@ -217,8 +217,12 @@ const SettingsUI = (() => {
                 ? `Using your image (${formatSize(info.size)})`
                 : "Your image could not be found, so the background is a flat colour",
             url: `Using ${info.url}`,
+            gradient: "Using a background set in the settings",
         };
         els.wallpaperCurrent.textContent = labels[info.mode] ?? labels.none;
+        // An image that something else put aside is still in storage, so offer
+        // to put it back rather than making them pick it again.
+        els.wallpaperRestoreRow.hidden = !info.stored || info.mode === "file";
     }
 
     function bindWallpaper() {
@@ -233,6 +237,11 @@ const SettingsUI = (() => {
         els.wallpaperReset.addEventListener("click", async () => {
             await mutate(() => Settings.clearWallpaper());
             fillInputs();
+            refreshWallpaperInfo();
+        });
+
+        els.wallpaperRestore.addEventListener("click", async () => {
+            await mutate(() => Settings.restoreWallpaper());
             refreshWallpaperInfo();
         });
 
@@ -758,6 +767,8 @@ const SettingsUI = (() => {
         toast: "settings-toast",
         wallpaperFile: "wallpaper-file",
         wallpaperReset: "wallpaper-reset",
+        wallpaperRestore: "wallpaper-restore",
+        wallpaperRestoreRow: "wallpaper-restore-row",
         wallpaperUrl: "wallpaper-url",
         wallpaperUrlApply: "wallpaper-url-apply",
         wallpaperCurrent: "wallpaper-current",
