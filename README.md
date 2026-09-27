@@ -19,7 +19,7 @@ survive extension updates.
 | --- | --- |
 | Presets | Your saved looks as a gallery: save the look on screen under a name, then click a card to bring it back, update it, rename it or delete it. Five starter looks sit below the gallery. |
 | Appearance | Colours for text, category titles, bookmarks (normal, hover, visited) and the clock/weather widgets. Font family and sizes. Panel opacity and backdrop blur. Layout: columns, spacing, panel width, corner rounding. Your name and the greeting wording. |
-| Wallpaper | Pick a local image or use an image URL, and remove it again. A picked image that something else has replaced can be brought back with one button. A slider darkens the wallpaper behind the text. |
+| Wallpaper | Pick a local image or use an image URL, and remove it again. A picture over 2 MB is made smaller to fit the screen, and the tab says so. A picked image that something else has replaced can be brought back with one button. A slider darkens the wallpaper behind the text. |
 | Widgets | Show/hide the clock and the weather, 12/24 hour format, weather city and OpenWeatherMap API key. |
 | Bookmarks | Add, rename, delete, reorder and edit categories and bookmarks. Drag to reorder, or use the arrow buttons. Dropping a bookmark on another category moves it. |
 | Data | Export/import the whole configuration as JSON, or reset to defaults. |
@@ -30,6 +30,15 @@ while the menu is open.
 **No wallpaper is bundled.** The whole extension is about 120 kB, and the page
 starts on a flat background colour until you pick a picture in the Wallpaper
 tab. While there is no wallpaper, the gear button pulses gently to point at it.
+
+**A large picture is made smaller.** A wallpaper is only ever seen scaled to
+fill the screen, so most of an 8 MB picture from a phone is pixels no display
+can show, and all of them are decoded again on every new tab. A picked picture
+over 2 MB is stored as WebP at no more than 2560 pixels on its longest edge: a
+4032×3024 photo goes from 15.9 MB to 1.7 MB, with no visible difference, since
+the screen cannot show one. The Wallpaper tab says when this happened and what it
+became. Everything else is stored exactly as you picked it — a small picture
+keeps its own bytes, and nothing is ever made larger.
 
 ## Presets
 
@@ -119,6 +128,9 @@ Notes:
   (`storage.local` only has a few MB to spend, and base64 inflates by a third).
   An image URL is exported, the image behind it is not. A gradient background is
   plain text, so it exports like everything else.
+- The blob in IndexedDB is the made-smaller version, not your original file, so
+  the file on your disk is the only copy at full size. Re-encoding happens once,
+  when you pick a picture.
 - The weather city is looked up through OpenWeatherMap's geocoding API, so
   changing it needs a network connection. The first lookup is cached with its
   coordinates.
