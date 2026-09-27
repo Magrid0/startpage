@@ -224,6 +224,13 @@ const SettingsUI = (() => {
             gradient: "Using a background from a preset",
         };
         els.wallpaperCurrent.textContent = labels[info.mode] ?? labels.none;
+        // A picture much larger than the screen is stored smaller, and saying so
+        // is better than the size quietly changing under you.
+        els.wallpaperShrink.textContent = info.shrink
+            ? `Made smaller to fit the screen: ${formatSize(info.shrink.from)} became ${formatSize(
+                  info.shrink.to,
+              )}.`
+            : "";
         // The picture you picked last, if something else put it aside, so offer
         // to put it back rather than making them pick the file again.
         els.wallpaperRestoreRow.hidden = !info.restore;
@@ -1006,6 +1013,7 @@ const SettingsUI = (() => {
         wallpaperUrl: "wallpaper-url",
         wallpaperUrlApply: "wallpaper-url-apply",
         wallpaperCurrent: "wallpaper-current",
+        wallpaperShrink: "wallpaper-shrink",
         presetRow: "preset-row",
         presetGallery: "preset-gallery",
         presetEmpty: "preset-empty",
