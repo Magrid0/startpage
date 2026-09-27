@@ -144,6 +144,7 @@ const SettingsUI = (() => {
         els.overlay.hidden = false;
         // Having seen the menu, stop the gear pulsing about the wallpaper.
         els.button.dataset.seen = "";
+        buildContents();
         fillInputs();
         refreshWallpaperInfo();
         refreshJson();
@@ -1040,11 +1041,30 @@ const SettingsUI = (() => {
         }
     }
 
+    /**
+     * The parts of the menu that have to be drawn rather than parsed: the
+     * starter looks, the bookmark editor and the preset gallery, the last of
+     * these making a fresh preview for every card.
+     *
+     * A new tab almost never opens the menu, so this happens the first time it
+     * is opened instead of on every tab. The listeners are all bound to
+     * containers that exist in the markup already, so drawing later changes
+     * nothing about how the menu responds.
+     */
+    let contentsBuilt = false;
+
+    function buildContents() {
+        if (contentsBuilt) return;
+        contentsBuilt = true;
+        renderStarterLooks();
+        renderEditor();
+        renderGallery();
+    }
+
     function init() {
         cacheElements();
         bindModal();
         bindSettingInputs();
-        renderStarterLooks();
         bindStarterLooks();
         bindGallery();
         bindWallpaper();
@@ -1054,19 +1074,15 @@ const SettingsUI = (() => {
 
         // Settings that arrived from disk (or another tab) repaint the form.
         Settings.subscribe(() => {
-            if (selfChange) return;
+            if (selfChange || !contentsBuilt) return;
             fillInputs();
             refreshWallpaperInfo();
             renderEditor();
             renderGallery();
         });
 
-        Settings.ready.then(() => {
-            fillInputs();
-            renderEditor();
-            refreshWallpaperInfo();
-            renderGallery();
-        });
+        // Nothing in the menu is drawn until it is opened, so there is nothing
+        // here to keep in step with the settings yet.
     }
 
     return { init, open, close, toggle };
