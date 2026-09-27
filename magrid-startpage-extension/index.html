@@ -88,7 +88,10 @@
                 aria-labelledby="settings-title"
             >
                 <header class="settings-header">
-                    <h1 id="settings-title">Settings</h1>
+                    <div class="settings-heading">
+                        <h1 id="settings-title">Settings</h1>
+                        <span class="settings-version" id="settings-version"></span>
+                    </div>
                     <button
                         class="settings-close"
                         id="settings-close"
@@ -151,14 +154,6 @@
                             Nothing saved yet. Set up a look you like, give it a
                             name above, and it turns up here as a card you can
                             click to bring it back.
-                        </p>
-
-                        <h2>Starter looks</h2>
-                        <div class="preset-row" id="preset-row"></div>
-                        <p class="field-hint">
-                            Five ready made looks, each with the background it
-                            was designed for. Use one as it is, or change the
-                            colours and save the result as your own.
                         </p>
                     </section>
 
@@ -525,7 +520,6 @@
             </div>
         </div>
 
-        <script src="presets.js"></script>
         <script src="settings.js"></script>
         <script src="bookmarks.js"></script>
         <script src="weather.js"></script>

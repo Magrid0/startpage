@@ -380,30 +380,6 @@ const SettingsUI = (() => {
         );
     }
 
-    /**
-     * The starter looks from presets.js, as a chip of the background each one
-     * applies. They come through the same sanitizer as your own presets, so a
-     * starter look and a saved one behave identically when clicked.
-     */
-    function renderStarterLooks() {
-        if (!els.presetRow) return;
-        els.presetRow.replaceChildren(
-            ...Settings.starterPresets().map((preset) => {
-                const button = document.createElement("button");
-                button.className = "preset";
-                button.type = "button";
-                button.dataset.preset = preset.name;
-                button.title = `Apply the ${preset.name} colours, panel and background`;
-                button.style.background = previewBackground(preset.wallpaper);
-                button.style.setProperty("--preset-link", preset.theme.colorLink);
-                const label = document.createElement("span");
-                label.textContent = preset.name;
-                button.append(label);
-                return button;
-            }),
-        );
-    }
-
     function bindGallery() {
         // Saving the look on screen under a name. The field empties itself so
         // the next save does not inherit the last name by accident.
@@ -451,21 +427,6 @@ const SettingsUI = (() => {
         });
     }
 
-    function bindStarterLooks() {
-        els.presetRow?.addEventListener("click", async (event) => {
-            const button = event.target.closest(".preset");
-            if (!button) return;
-            const preset = Settings.starterPresets().find(
-                (one) => one.name === button.dataset.preset,
-            );
-            if (!preset) return;
-            await mutate(() => Settings.applyPreset(preset));
-            fillInputs();
-            refreshWallpaperInfo();
-            await renderGallery();
-            toast(`${preset.name} applied.`);
-        });
-    }
 
     function bindWallpaper() {
         els.wallpaperFile.addEventListener("change", async (event) => {
@@ -1015,7 +976,7 @@ const SettingsUI = (() => {
         wallpaperUrlApply: "wallpaper-url-apply",
         wallpaperCurrent: "wallpaper-current",
         wallpaperShrink: "wallpaper-shrink",
-        presetRow: "preset-row",
+        version: "settings-version",
         presetGallery: "preset-gallery",
         presetEmpty: "preset-empty",
         presetName: "preset-name",
@@ -1043,8 +1004,8 @@ const SettingsUI = (() => {
 
     /**
      * The parts of the menu that have to be drawn rather than parsed: the
-     * starter looks, the bookmark editor and the preset gallery, the last of
-     * these making a fresh preview for every card.
+     * bookmark editor and the preset gallery, the last of these making a
+     * fresh preview for every card.
      *
      * A new tab almost never opens the menu, so this happens the first time it
      * is opened instead of on every tab. The listeners are all bound to
@@ -1056,7 +1017,6 @@ const SettingsUI = (() => {
     function buildContents() {
         if (contentsBuilt) return;
         contentsBuilt = true;
-        renderStarterLooks();
         renderEditor();
         renderGallery();
         // The menu is now drawn from whatever the settings are at this moment,
@@ -1108,9 +1068,11 @@ const SettingsUI = (() => {
 
     function init() {
         cacheElements();
+        // The version, from the manifest, shown small under the Settings title.
+        const runtime = typeof browser !== "undefined" ? browser : chrome;
+        els.version.textContent = `v${runtime.runtime.getManifest().version}`;
         bindModal();
         bindSettingInputs();
-        bindStarterLooks();
         bindGallery();
         bindWallpaper();
         bindWeather();

@@ -1188,23 +1188,6 @@ const Settings = (() => {
             });
             return look;
         },
-        /**
-         * The ready made looks from presets.js, in the shape a saved preset
-         * takes, so the same code applies both and the gallery can show what a
-         * starter look will do before you click it.
-         */
-        starterPresets() {
-            return Presets.map((preset) =>
-                sanitizePreset({
-                    name: preset.name,
-                    theme: preset.theme,
-                    panel: preset.panel,
-                    // A starter look carries a gradient, never a picture, so
-                    // nothing here reaches for the image library.
-                    wallpaper: { mode: "gradient", gradient: preset.wallpaper },
-                }),
-            );
-        },
     };
 })();
 
