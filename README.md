@@ -17,7 +17,8 @@ survive extension updates.
 
 | Tab | What it does |
 | --- | --- |
-| Appearance | One click presets, each with its own background. Colours for text, category titles, bookmarks (normal, hover, visited) and the clock/weather widgets. Font family and sizes. Panel opacity and backdrop blur. Layout: columns, spacing, panel width, corner rounding. Your name and the greeting wording. |
+| Presets | Your saved looks as a gallery: save the look on screen under a name, then click a card to bring it back, update it, rename it or delete it. Five starter looks sit below the gallery. |
+| Appearance | Colours for text, category titles, bookmarks (normal, hover, visited) and the clock/weather widgets. Font family and sizes. Panel opacity and backdrop blur. Layout: columns, spacing, panel width, corner rounding. Your name and the greeting wording. |
 | Wallpaper | Pick a local image or use an image URL, and remove it again. A picked image that something else has replaced can be brought back with one button. A slider darkens the wallpaper behind the text. |
 | Widgets | Show/hide the clock and the weather, 12/24 hour format, weather city and OpenWeatherMap API key. |
 | Bookmarks | Add, rename, delete, reorder and edit categories and bookmarks. Drag to reorder, or use the arrow buttons. Dropping a bookmark on another category moves it. |
@@ -32,18 +33,45 @@ tab. While there is no wallpaper, the gear button pulses gently to point at it.
 
 ## Presets
 
-Appearance → Presets applies a whole look in one click: the six colours, how
-much the panel shows through, and the background it was designed for. Five are
-there to start with, Nord, Dracula, Solarized dark, Solarized light and Amoled
-black, each drawn as a chip of its own background.
+The Presets tab is the first one you see, because switching between looks is the
+thing you do most.
 
-They are plain CSS gradients, not images, so they cost the package nothing, ask
-for no permission and cannot fail to load. A preset does not touch your fonts,
-sizes, greeting or bookmarks, and it does not delete the image you picked: that
-is set aside, and the Wallpaper tab brings it back.
+**Your own looks.** Set up a look you like, type a name above the gallery and
+save it. It turns up as a card showing what that look actually looks like: its
+background, the panel sitting on it, and a few words in its own colours. From
+there a card is `Use it`, `Update` (overwrite it with the look on screen right
+now), or `Delete`. The name field on the card is the rename, so there is no
+dialog to keep in step with the gallery.
 
-The list is data, not markup: add an entry to `PRESETS` in `presets.js` and a
-button appears.
+A preset captures the colours, the panel and the background, and deliberately
+nothing else. Your fonts, sizes, greeting and bookmarks are not part of one and
+are left alone, so a look can never drag your page out of shape.
+
+**One picture, however many looks want it.** Every image you pick goes into a
+library in IndexedDB under an id of its own, and a preset points at that id
+rather than holding a copy. Two looks that share a wallpaper cost one file
+between them. A picture nothing points at any more is deleted for you, so the
+library does not grow quietly. The one exception is deliberate: applying a
+preset only *sets aside* the picture you had, and the Wallpaper tab brings it
+back with one button. Removing the wallpaper is how you really delete it.
+
+A picture preset copied from another browser has no file here, so that card says
+so and keeps the background you already have rather than blanking the page.
+
+**Starter looks.** Nord, Dracula, Solarized dark, Solarized light and Amoled
+black are the five looks that ship with the extension, drawn as chips of their
+own backgrounds below the gallery. They are plain CSS gradients, not images, so
+they cost the package nothing, ask for no permission and cannot fail to load.
+Use one as it is, or change the colours and save the result as your own.
+
+That list is data, not markup: add an entry to `PRESETS` in `presets.js` and a
+chip appears. Starter looks and your own go through the same validation and the
+same code to apply, so they behave identically.
+
+Presets are stored in the settings JSON and travel with an export. The
+pictures do not: an export carries the colours, the panel and *which* image each
+preset used, and importing it on another browser leaves the cards marked as
+missing their picture rather than failing.
 
 ## Layout
 
