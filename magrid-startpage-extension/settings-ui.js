@@ -794,3 +794,5 @@ const SettingsUI = (() => {
 })();
 
 SettingsUI.init();
+
+window.SettingsUI = SettingsUI;

@@ -541,3 +541,6 @@ const Settings = (() => {
         },
     };
 })();
+
+// Also on window, so it can be poked at from the devtools console.
+window.Settings = Settings;

@@ -154,6 +154,8 @@ const Bookmarks = (() => {
     };
 })();
 
+window.Bookmarks = Bookmarks;
+
 // Repaint whenever the stored bookmarks actually change, but ignore colour or
 // slider tweaks that only touch the theme.
 let snapshot = "";
