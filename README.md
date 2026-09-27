@@ -135,6 +135,36 @@ Notes:
   changing it needs a network connection. The first lookup is cached with its
   coordinates.
 
+## What the page does not do
+
+A new tab is opened, looked at, and closed, so the page spends its time doing
+almost nothing. The things it deliberately does not do:
+
+- **The settings menu is not built until it is opened.** The markup is in
+  `index.html` either way, so a closed menu costs nothing extra. A new tab with
+  eight saved looks makes one object URL and leaves 261 nodes, where it used to
+  make fifteen and leave 531 — the whole menu, a card and a fresh preview for
+  every look, drawn for a menu nobody opened.
+- **A change only redraws the part it affects.** The inputs, the wallpaper note,
+  the bookmark editor and the preset gallery are drawn from four different
+  corners of the settings, so changing one colour does not rebuild the other
+  three or read the wallpaper out of storage again.
+- **A custom property that already holds its value is not written back.** Every
+  property the settings drive is read by the whole page, so writing all
+  thirty-six of them for one colour change made the browser recalculate the
+  page's style for nothing. One change is now one write.
+- **The picture is not read out of storage for an unrelated change.** Dragging a
+  slider does not go back to IndexedDB for a wallpaper that has not moved.
+- **The clock wakes up once a minute, not once a second.** It formats with
+  built-once `Intl` formatters, and only writes text that changed. A tab left
+  open overnight pays 7 ms of main thread for the clock instead of 196 ms.
+
+Measured in Firefox with the real extension loaded and a wallpaper set, first
+contentful paint went from 27 ms to 21 ms. Load time is dominated by parsing the
+document and reading the settings, both of which are already about as small as
+they can be: moving the settings markup out of `index.html` into a file fetched
+on first use was measured at 0 ms, so that is not done.
+
 ## Development
 
 Load `magrid-startpage-extension/` as a temporary add-on
