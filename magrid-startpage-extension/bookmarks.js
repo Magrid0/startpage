@@ -30,6 +30,10 @@ const Bookmarks = (() => {
         anchor.href = link.url;
         anchor.textContent = link.title || link.url;
         anchor.title = link.url;
+        // Kept so filter.js can match and re-highlight without reading the
+        // settings object itself.
+        anchor.dataset.title = link.title || link.url;
+        anchor.dataset.url = link.url;
         item.append(anchor);
         return item;
     }

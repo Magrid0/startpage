@@ -32,6 +32,22 @@
                         <p id="greeting">Hello, Magrid.</p>
                     </div>
 
+                    <!-- Shown by filter.js once you start typing -->
+                    <div class="bookmark-filter" id="bookmark-filter" hidden>
+                        <input
+                            type="text"
+                            id="bookmark-filter-input"
+                            placeholder="Filter bookmarks"
+                            aria-label="Filter bookmarks"
+                            spellcheck="false"
+                            autocomplete="off"
+                        />
+                        <span
+                            class="bookmark-filter-count"
+                            id="bookmark-filter-count"
+                        ></span>
+                    </div>
+
                     <!-- Categories are rendered by bookmarks.js -->
                     <div class="bookmarks" id="bookmarks"></div>
                 </div>
@@ -42,7 +58,7 @@
             class="settings-button"
             id="settings-button"
             type="button"
-            title="Settings (s)"
+            title="Settings (shift + s)"
             aria-label="Settings"
         >
             <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
@@ -405,6 +421,7 @@
         <script src="weather.js"></script>
         <script src="clock.js"></script>
         <script src="greeting.js"></script>
+        <script src="filter.js"></script>
         <script src="settings-ui.js"></script>
     </body>
 </html>

@@ -186,7 +186,9 @@ const SettingsUI = (() => {
             const typing = ["INPUT", "TEXTAREA", "SELECT"].includes(
                 document.activeElement?.tagName,
             );
-            if (event.key === "s" && !typing && !event.ctrlKey && !event.metaKey) {
+            // Uppercase S, so that a lower case "s" can still start a bookmark
+            // filter. See filter.js.
+            if (event.key === "S" && !typing && !event.ctrlKey && !event.metaKey) {
                 event.preventDefault();
                 toggle();
             }
