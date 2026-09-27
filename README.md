@@ -165,6 +165,30 @@ document and reading the settings, both of which are already about as small as
 they can be: moving the settings markup out of `index.html` into a file fetched
 on first use was measured at 0 ms, so that is not done.
 
+## The wallpaper is on screen before the first paint
+
+A new tab used to open on a frame of flat colour. The stylesheet's `--wallpaper`
+is a transparent layer until the settings and the picture come back from
+storage, and on a cold start that is a frame or two after the page has already
+painted — so the tab showed the background colour, then the wallpaper.
+
+The picture is now cached in `localStorage` as a data URL, and `boot.js` reads
+it while the page is still parsing and sets `--wallpaper` before the first
+paint. `localStorage` is the one thing a page can read at that point, which is
+the only way to beat the flat frame: the picture is in the stylesheet early
+enough that the browser decodes it while it paints, so the first paint is the
+wallpaper.
+
+The cache is a copy, not the store — the picture itself still lives in
+IndexedDB, and the cache is rewritten every time the wallpaper changes and
+dropped when it is not a picture any more (a URL, a gradient, or none). If it
+is missing or storage is blocked, the picture still arrives the ordinary way,
+one frame later.
+
+Measured over a cold start with the real extension loaded, the flat frame went
+from about 17 ms to about 2 ms, and the first paint was the wallpaper on every
+run rather than on none.
+
 ## Development
 
 Load `magrid-startpage-extension/` as a temporary add-on
