@@ -24,6 +24,13 @@ const LEGACY_WALLPAPER_ASSET = "wallpaper";
 // that share a wallpaper share one copy of it on disk.
 const IMAGE_PREFIX = "wallpaper-image:";
 
+// The wallpaper, cached in localStorage so a new tab can put it on screen before
+// the first paint. localStorage is the one thing a page can read while it is
+// still parsing, which is the only way to beat the frame of flat colour that
+// opens a tab today. It is a cache, not the store: the picture itself still
+// lives in IndexedDB, and this is rewritten every time it changes.
+const WALLPAPER_CACHE_KEY = "startpage.wallpaper";
+
 // There is no bundled wallpaper, so the page ships small and you bring your own
 // picture. With none set the background is a flat colour, and --wallpaper is a
 // fully transparent layer rather than "none" so that background-image stays
@@ -674,6 +681,39 @@ const Settings = (() => {
     }
 
     /**
+     * Caches the wallpaper in localStorage, as a data URL, so the next tab can
+     * paint it before the first paint rather than a frame of flat colour first.
+     *
+     * The read is fire-and-forget: if it does not land in time, the picture
+     * still arrives the ordinary way, one frame later. Nothing depends on it.
+     */
+    function cacheWallpaper(blob) {
+        try {
+            const reader = new FileReader();
+            reader.onload = () => {
+                try {
+                    localStorage.setItem(WALLPAPER_CACHE_KEY, cssUrl(reader.result));
+                } catch {
+                    // Too big for localStorage, or storage is blocked: the cache
+                    // is a nicety, so there is nothing to recover from.
+                }
+            };
+            reader.readAsDataURL(blob);
+        } catch {
+            // No FileReader: nothing cached, nothing lost.
+        }
+    }
+
+    /** Drops the cached wallpaper, so a tab does not open on a stale picture. */
+    function clearWallpaperCache() {
+        try {
+            localStorage.removeItem(WALLPAPER_CACHE_KEY);
+        } catch {
+            // Storage is blocked: nothing to clear.
+        }
+    }
+
+    /**
      * The CSS value for a wallpaper, or an empty string when the picture it
      * points at is not in the library (a preset imported from another profile,
      * or an image deleted by hand).
@@ -701,6 +741,7 @@ const Settings = (() => {
             if (wallpaperObjectUrl) URL.revokeObjectURL(wallpaperObjectUrl);
             wallpaperObjectImage = image;
             wallpaperObjectUrl = URL.createObjectURL(blob);
+            cacheWallpaper(blob);
             return cssUrl(wallpaperObjectUrl);
         } catch (error) {
             console.error("Could not read the stored wallpaper:", error);
@@ -713,6 +754,12 @@ const Settings = (() => {
         setVar("--wallpaper", image);
         // Lets the settings button nudge the user until a wallpaper is picked.
         root.dataset.wallpaper = image === NO_WALLPAPER ? "none" : "image";
+        // The localStorage cache holds the picture, so it is only worth keeping
+        // while a picture is what is on screen. Otherwise the next tab would
+        // open on the last picture rather than on what is actually set.
+        if (state.wallpaper.mode !== "image" || image === NO_WALLPAPER) {
+            clearWallpaperCache();
+        }
     }
 
     function applyTheme() {
