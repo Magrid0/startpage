@@ -217,12 +217,48 @@ const SettingsUI = (() => {
                 ? `Using your image (${formatSize(info.size)})`
                 : "Your image could not be found, so the background is a flat colour",
             url: `Using ${info.url}`,
-            gradient: "Using a background set in the settings",
+            gradient: "Using the background from a preset",
         };
         els.wallpaperCurrent.textContent = labels[info.mode] ?? labels.none;
-        // An image that something else put aside is still in storage, so offer
-        // to put it back rather than making them pick it again.
+        // An image that a preset or a URL only set aside is still in storage,
+        // so offer to put it back rather than making them pick it again.
         els.wallpaperRestoreRow.hidden = !info.stored || info.mode === "file";
+    }
+
+    /**
+     * Builds the preset buttons from the data in presets.js, each one showing
+     * the background it will apply, so adding a preset needs no markup.
+     */
+    function renderPresets() {
+        if (!els.presetRow) return;
+        els.presetRow.replaceChildren(
+            ...Presets.map((preset) => {
+                const button = document.createElement("button");
+                button.className = "preset";
+                button.type = "button";
+                button.dataset.preset = preset.id;
+                button.title = `Apply the ${preset.name} colours, panel and background`;
+                button.style.background = preset.wallpaper;
+                button.style.setProperty("--preset-link", preset.theme.colorLink);
+                const label = document.createElement("span");
+                label.textContent = preset.name;
+                button.append(label);
+                return button;
+            }),
+        );
+    }
+
+    function bindPresets() {
+        els.presetRow?.addEventListener("click", async (event) => {
+            const button = event.target.closest(".preset");
+            if (!button) return;
+            const preset = Presets.find((one) => one.id === button.dataset.preset);
+            if (!preset) return;
+            await mutate(() => Settings.applyPreset(preset));
+            fillInputs();
+            refreshWallpaperInfo();
+            toast(`${preset.name} applied.`);
+        });
     }
 
     function bindWallpaper() {
@@ -772,6 +808,7 @@ const SettingsUI = (() => {
         wallpaperUrl: "wallpaper-url",
         wallpaperUrlApply: "wallpaper-url-apply",
         wallpaperCurrent: "wallpaper-current",
+        presetRow: "preset-row",
         weatherCity: "weather-city",
         weatherCityApply: "weather-city-apply",
         cityOptions: "weather-city-options",
@@ -797,6 +834,8 @@ const SettingsUI = (() => {
         cacheElements();
         bindModal();
         bindSettingInputs();
+        renderPresets();
+        bindPresets();
         bindWallpaper();
         bindWeather();
         bindEditor();

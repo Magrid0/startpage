@@ -86,8 +86,7 @@ const DEFAULTS = {
 
     wallpaper: {
         // "none" (flat background colour), "file" (IndexedDB blob), "url" or
-        // "gradient" (a plain CSS gradient, for a background that is not an
-        // image at all).
+        // "gradient" (a CSS gradient, which is what the presets use).
         mode: "none",
         url: "",
         gradient: "",
@@ -548,7 +547,7 @@ const Settings = (() => {
         async wallpaperInfo() {
             let size = null;
             // Whether an image is still stored, even if something else is on
-            // screen: choosing another background only sets it aside.
+            // screen: applying a preset only sets the stored image aside.
             let stored = false;
             try {
                 const blob = await assetGet(WALLPAPER_ASSET);
@@ -575,7 +574,7 @@ const Settings = (() => {
             state = sanitize(DEFAULTS);
             await storageClear();
             // A reset is meant to be a clean slate, so the stored image goes
-            // with it. Choosing another background is how you set it aside.
+            // with it. Applying a preset is the way to set it aside instead.
             try {
                 await assetDelete(WALLPAPER_ASSET);
             } catch (error) {
@@ -640,13 +639,37 @@ const Settings = (() => {
             notify();
         },
         /**
-         * Puts a stored image back on screen. Switching to a URL or a gradient
-         * only sets it aside, so this brings it back without re-picking.
+         * Puts a stored image back on screen. Applying a preset or switching to
+         * a URL only sets it aside, so this brings it back without re-picking.
          */
         async restoreWallpaper() {
             const blob = await assetGet(WALLPAPER_ASSET);
             if (!blob) throw new Error("There is no stored image to bring back.");
             state = sanitize(merge(state, { wallpaper: { mode: "file" } }));
+            await storageWrite(state);
+            await apply();
+            notify();
+        },
+        /**
+         * Applies a theme preset: every colour, the panel and the wallpaper it
+         * was designed with. Anything a preset does not mention, such as the
+         * font sizes or the bookmarks, is left alone.
+         */
+        async applyPreset(preset) {
+            if (!preset?.theme || !preset?.wallpaper) {
+                throw new Error("That is not a theme preset.");
+            }
+            state = sanitize(
+                merge(state, {
+                    theme: { ...preset.theme },
+                    panel: { ...preset.panel },
+                    wallpaper: {
+                        mode: "gradient",
+                        gradient: preset.wallpaper,
+                        url: "",
+                    },
+                }),
+            );
             await storageWrite(state);
             await apply();
             notify();
