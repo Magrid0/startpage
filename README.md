@@ -18,7 +18,7 @@ survive extension updates.
 | Tab | What it does |
 | --- | --- |
 | Appearance | Colours for text, category titles, bookmarks (normal, hover, visited) and the clock/weather widgets. Font family and sizes. Panel opacity and backdrop blur. |
-| Wallpaper | Pick a local image, use an image URL, or go back to the bundled `wallpaper.png`. A slider darkens the wallpaper behind the text. |
+| Wallpaper | Pick a local image or use an image URL, and remove it again. A slider darkens the wallpaper behind the text. |
 | Widgets | Show/hide the clock and the weather, 12/24 hour format, weather city and OpenWeatherMap API key. |
 | Bookmarks | Add, rename, delete, reorder and edit categories and bookmarks. Drag to reorder, or use the arrow buttons. Dropping a bookmark on another category moves it. |
 | Data | Export/import the whole configuration as JSON, or reset to defaults. |
@@ -26,13 +26,18 @@ survive extension updates.
 Colours, blur, opacity and font sizes apply live, so you can see the effect
 while the menu is open.
 
+**No wallpaper is bundled.** The whole extension is about 120 kB, and the page
+starts on a flat background colour until you pick a picture in the Wallpaper
+tab. While there is no wallpaper, the gear button pulses gently to point at it.
+
 Notes:
 
 - Settings live in the browser profile. Uninstalling the extension deletes
   them, so use **Data → Export** to keep a copy (and to move your setup
   between a temporary install and a signed one).
-- A picked wallpaper is stored as a blob, not in the JSON export. An image URL
-  is exported, the image behind it is not.
+- A picked wallpaper is stored as a blob in IndexedDB, not in the JSON export
+  (`storage.local` only has a few MB to spend, and base64 inflates by a third).
+  An image URL is exported, the image behind it is not.
 - The weather city is looked up through OpenWeatherMap's geocoding API, so
   changing it needs a network connection. The first lookup is cached with its
   coordinates.

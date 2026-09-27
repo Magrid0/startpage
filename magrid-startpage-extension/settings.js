@@ -19,7 +19,11 @@ const DB_NAME = "magrid-startpage";
 const DB_STORE = "assets";
 const WALLPAPER_ASSET = "wallpaper";
 
-const DEFAULT_WALLPAPER = 'url("wallpaper.png")';
+// There is no bundled wallpaper, so the page ships small and you bring your own
+// picture. With none set the background is a flat colour, and --wallpaper is a
+// fully transparent layer rather than "none" so that background-image stays
+// valid and the darkening layer still composites on top of it.
+const NO_WALLPAPER = "linear-gradient(transparent, transparent)";
 
 // OpenWeatherMap is called directly from the page, so the key lives here. It
 // can be overridden from the settings menu, but since the start page is a
@@ -62,8 +66,8 @@ const DEFAULTS = {
     wallpaperDim: 0,
 
     wallpaper: {
-        // "default" (bundled wallpaper.png), "file" (IndexedDB blob) or "url".
-        mode: "default",
+        // "none" (flat background colour), "file" (IndexedDB blob) or "url".
+        mode: "none",
         url: "",
     },
 
@@ -312,7 +316,9 @@ function sanitize(input) {
     const weather = isPlainObject(widgets.weather) ? widgets.weather : {};
     const clock = isPlainObject(widgets.clock) ? widgets.clock : {};
 
-    const mode = asEnum(wallpaper.mode, ["default", "file", "url"], "default");
+    // "default" was the bundled wallpaper, which no longer exists: anything but
+    // "file" or "url" now means "no wallpaper".
+    const mode = asEnum(wallpaper.mode, ["none", "file", "url"], "none");
     const url = mode === "url" ? normalizeUrl(wallpaper.url) : "";
 
     return {
@@ -341,7 +347,7 @@ function sanitize(input) {
         },
         wallpaperDim: asNumber(source.wallpaperDim, 0, 0, 0.9),
         wallpaper: {
-            // A "file" wallpaper without a stored image falls back to default.
+            // A "file" wallpaper whose blob went missing falls back to "none".
             mode,
             url,
         },
@@ -383,7 +389,7 @@ const Settings = (() => {
 
     async function applyWallpaper() {
         const { mode, url } = state.wallpaper;
-        let image = DEFAULT_WALLPAPER;
+        let image = NO_WALLPAPER;
 
         if (mode === "url" && url) {
             image = cssUrl(url);
@@ -539,7 +545,7 @@ const Settings = (() => {
                 wallpaperObjectUrl = null;
             }
             state = sanitize(
-                merge(state, { wallpaper: { mode: "default", url: "" } }),
+                merge(state, { wallpaper: { mode: "none", url: "" } }),
             );
             await storageWrite(state);
             await apply();

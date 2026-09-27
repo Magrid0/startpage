@@ -17,7 +17,9 @@
     --panel-opacity: 0.6;
     --panel-blur: 7px;
     --wallpaper-dim: 0;
-    --wallpaper: url("wallpaper.png");
+    /* No wallpaper ships with the extension. Until you pick one, this is a
+       transparent layer and you see the flat --color-bg. */
+    --wallpaper: linear-gradient(transparent, transparent);
 }
 
 html,

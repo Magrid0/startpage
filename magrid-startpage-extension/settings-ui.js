@@ -193,16 +193,23 @@ const SettingsUI = (() => {
 
     // --- wallpaper ---------------------------------------------------------
 
+    /** Small images read better in kB than as a row of zeroes in MB. */
+    function formatSize(bytes) {
+        return bytes >= 1048576
+            ? `${(bytes / 1048576).toFixed(2)} MB`
+            : `${Math.max(1, Math.round(bytes / 1024))} kB`;
+    }
+
     async function refreshWallpaperInfo() {
         const info = await Settings.wallpaperInfo();
         const labels = {
-            default: "Using the bundled wallpaper.png",
+            none: "No wallpaper set, so the background is a flat colour",
             file: info.size
-                ? `Using your image (${(info.size / 1048576).toFixed(2)} MB)`
-                : "Your image could not be found, using the bundled wallpaper.png",
+                ? `Using your image (${formatSize(info.size)})`
+                : "Your image could not be found, so the background is a flat colour",
             url: `Using ${info.url}`,
         };
-        els.wallpaperCurrent.textContent = labels[info.mode] ?? labels.default;
+        els.wallpaperCurrent.textContent = labels[info.mode] ?? labels.none;
     }
 
     function bindWallpaper() {
