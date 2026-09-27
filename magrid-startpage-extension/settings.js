@@ -54,6 +54,12 @@ const DEFAULTS = {
         sizeLinks: 16,
         sizeTitle: 20,
         sizeGreeting: 40,
+        // The greeting, from greeting.js.
+        greetingName: "Magrid",
+        // {greeting} becomes Good morning/afternoon/evening/night, {name} the
+        // name above. Leave {greeting} out for fixed wording, or empty the whole
+        // thing to drop the greeting.
+        greetingTemplate: "{greeting}, {name}.",
     },
 
     // The frosted card the bookmarks sit in.
@@ -340,6 +346,12 @@ function sanitize(input) {
             sizeLinks: asNumber(theme.sizeLinks, 16, 8, 48),
             sizeTitle: asNumber(theme.sizeTitle, 20, 8, 64),
             sizeGreeting: asNumber(theme.sizeGreeting, 40, 12, 120),
+            greetingName: asString(theme.greetingName, DEFAULTS.theme.greetingName, 40),
+            greetingTemplate: asString(
+                theme.greetingTemplate,
+                DEFAULTS.theme.greetingTemplate,
+                120,
+            ),
         },
         panel: {
             opacity: asNumber(panel.opacity, 0.6, 0, 1),

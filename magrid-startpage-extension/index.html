@@ -173,6 +173,34 @@
                             </label>
                         </div>
 
+                        <h2>Greeting</h2>
+                        <div class="field-grid">
+                            <label class="field">
+                                <span>Your name</span>
+                                <input
+                                    type="text"
+                                    data-setting="theme.greetingName"
+                                    placeholder="Magrid"
+                                    spellcheck="false"
+                                />
+                            </label>
+                            <label class="field">
+                                <span>Wording</span>
+                                <input
+                                    type="text"
+                                    data-setting="theme.greetingTemplate"
+                                    placeholder="{greeting}, {name}."
+                                    spellcheck="false"
+                                />
+                            </label>
+                        </div>
+                        <p class="field-hint">
+                            <code>{greeting}</code> becomes good morning, afternoon,
+                            evening or night, and <code>{name}</code> is your name
+                            above. Leave <code>{greeting}</code> out for fixed
+                            wording, or clear the box to drop the greeting.
+                        </p>
+
                         <h2>Panel</h2>
                         <div class="field-grid">
                             <label class="field">
