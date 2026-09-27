@@ -651,6 +651,10 @@ const Settings = (() => {
     let state = sanitize(DEFAULTS);
     let wallpaperObjectUrl = null;
     let ready;
+    // Told about every write this tab makes, so the storage listener can pick
+    // its own echo out from a change made by another tab. Only set when that
+    // listener is in use.
+    let onWrite = null;
 
     function setVar(name, value) {
         root.style.setProperty(name, value);
@@ -776,6 +780,7 @@ const Settings = (() => {
     /** The one way this module changes the settings: merge, save, apply, tell. */
     async function commit(patch) {
         state = sanitize(merge(state, patch));
+        onWrite?.(state);
         await storageWrite(state);
         await apply();
         notify();
@@ -838,10 +843,29 @@ const Settings = (() => {
 
     // Keep multiple start page tabs in sync.
     if (STORAGE_BACKEND === "browser" && browser.storage.onChanged) {
+        // Every write this tab makes comes back as a change event of its own, and
+        // those events do not arrive in the order the writes were made. Adopting
+        // the one that started a slider drag puts the settings back to where the
+        // drag began, so a change that is exactly something this tab has already
+        // written is an echo of our own and is dropped.
+        //
+        // Another tab writing the very same settings is ignored too, which costs
+        // nothing: this tab already holds that state and has already drawn it.
+        const mine = new Set();
+        const remember = (value) => {
+            mine.add(JSON.stringify(value));
+            // Only the last few are needed: an echo follows its own write
+            // closely, and this is not a history of everything ever saved.
+            while (mine.size > 24) {
+                mine.delete(mine.values().next().value);
+            }
+        };
+        onWrite = remember;
         browser.storage.onChanged.addListener((changes, area) => {
             if (area !== "local" || !changes[SETTINGS_KEY]) return;
             const next = changes[SETTINGS_KEY].newValue;
             if (!next) return;
+            if (mine.has(JSON.stringify(next))) return;
             state = sanitize(next);
             apply().then(notify);
         });
