@@ -17,8 +17,8 @@ survive extension updates.
 
 | Tab | What it does |
 | --- | --- |
-| Appearance | Colours for text, category titles, bookmarks (normal, hover, visited) and the clock/weather widgets. Font family and sizes. Panel opacity and backdrop blur. Your name and the greeting wording. |
-| Wallpaper | Pick a local image or use an image URL, and remove it again. A slider darkens the wallpaper behind the text. |
+| Appearance | One click presets, each with its own background. Colours for text, category titles, bookmarks (normal, hover, visited) and the clock/weather widgets. Font family and sizes. Panel opacity and backdrop blur. Layout: columns, spacing, panel width, corner rounding. Your name and the greeting wording. |
+| Wallpaper | Pick a local image or use an image URL, and remove it again. A picked image that something else has replaced can be brought back with one button. A slider darkens the wallpaper behind the text. |
 | Widgets | Show/hide the clock and the weather, 12/24 hour format, weather city and OpenWeatherMap API key. |
 | Bookmarks | Add, rename, delete, reorder and edit categories and bookmarks. Drag to reorder, or use the arrow buttons. Dropping a bookmark on another category moves it. |
 | Data | Export/import the whole configuration as JSON, or reset to defaults. |
@@ -29,6 +29,35 @@ while the menu is open.
 **No wallpaper is bundled.** The whole extension is about 120 kB, and the page
 starts on a flat background colour until you pick a picture in the Wallpaper
 tab. While there is no wallpaper, the gear button pulses gently to point at it.
+
+## Presets
+
+Appearance → Presets applies a whole look in one click: the six colours, how
+much the panel shows through, and the background it was designed for. Five are
+there to start with, Nord, Dracula, Solarized dark, Solarized light and Amoled
+black, each drawn as a chip of its own background.
+
+They are plain CSS gradients, not images, so they cost the package nothing, ask
+for no permission and cannot fail to load. A preset does not touch your fonts,
+sizes, greeting or bookmarks, and it does not delete the image you picked: that
+is set aside, and the Wallpaper tab brings it back.
+
+The list is data, not markup: add an entry to `PRESETS` in `presets.js` and a
+button appears.
+
+## Layout
+
+Appearance → Layout has four sliders:
+
+- **Bookmark columns** — the categories wrap onto as many rows as they need.
+  Left at `any` they stay in one row for as long as they fit, which is what the
+  extension has always done.
+- **Space between them** — the gap the column count is built from, so the two
+  work together.
+- **Panel width** — `fits` hugs the bookmarks as they are; a number pins the
+  width however many bookmarks are in it. The padding is included, so the
+  number is the width you actually see.
+- **Corner rounding** — including `0` for square corners.
 
 ## The greeting
 
@@ -60,7 +89,8 @@ Notes:
   between a temporary install and a signed one).
 - A picked wallpaper is stored as a blob in IndexedDB, not in the JSON export
   (`storage.local` only has a few MB to spend, and base64 inflates by a third).
-  An image URL is exported, the image behind it is not.
+  An image URL is exported, the image behind it is not. A gradient background is
+  plain text, so it exports like everything else.
 - The weather city is looked up through OpenWeatherMap's geocoding API, so
   changing it needs a network connection. The first lookup is cached with its
   coordinates.
@@ -80,11 +110,12 @@ Files:
 | File | Role |
 | --- | --- |
 | `settings.js` | Settings schema, defaults, persistence, wallpaper storage, applying values as CSS variables. |
-| `settings-ui.js` | The settings menu: forms, bookmark editor, import/export. |
+| `settings-ui.js` | The settings menu: forms, preset buttons, bookmark editor, import/export. |
+| `presets.js` | The theme presets: colours, panel and background for each one. Data only. |
 | `bookmarks.js` | Bookmark model and rendering of the categories. |
 | `filter.js` | Type to filter the bookmark list on the page. |
 | `settings.css` | Styling for the settings menu. |
-| `style.css` | The start page itself. Colours, fonts and opacities are CSS variables with the defaults in `:root`. |
+| `style.css` | The start page itself. Colours, fonts, opacities and layout are CSS variables with the defaults in `:root`. |
 | `clock.js`, `weather.js`, `greeting.js` | Widgets. All three read the settings menu. |
 
 To add a new setting: add the key to `DEFAULTS` and to `sanitize()` in
@@ -93,3 +124,8 @@ in `applyTheme()`, then add an input with `data-setting="your.key"` in
 `index.html`. No other wiring needed. A setting that is not a CSS variable (the
 name, the clock format, whether a widget is on) is read by its widget through
 `Settings.get()` and repainted through `Settings.subscribe`.
+
+Values arriving from a settings file are all filtered by `sanitize()`, which is
+why a bad value falls back to the default instead of reaching the page. The
+wallpaper gradient is the one place a free-form string goes straight into a CSS
+property, so it is checked against a whitelist of gradient functions first.
