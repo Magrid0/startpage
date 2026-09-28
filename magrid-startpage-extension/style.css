@@ -271,6 +271,14 @@ a:hover {
     padding: 0 2px;
 }
 
+/* The row the arrow keys are standing on, while the filter is open. Rows are
+   the <li>s the bookmarks sit in, so a wash reads as one block rather than as
+   a pill around the text. */
+#bookmarks li.is-active {
+    background: rgba(255, 255, 255, 0.14);
+    border-radius: 6px;
+}
+
 @keyframes opacity {
     0% {
         opacity: 1;

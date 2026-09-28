@@ -1,7 +1,9 @@
 // ---------------------------------------------------------------------------
 // Type to filter. Start typing (or press /) and the bookmark list narrows to
-// what matches, with the matched part highlighted. Escape clears the filter,
-// Escape again puts the list back. Nothing is stored: a reload starts whole.
+// what matches, with the matched part highlighted. The arrow keys walk the
+// matches, Enter follows the one you are standing on (Alt+Enter in a new tab)
+// and Escape clears the filter, then puts the list back. Nothing is stored: a
+// reload starts whole.
 // ---------------------------------------------------------------------------
 
 const Filter = (() => {
@@ -43,10 +45,53 @@ const Filter = (() => {
         anchor.append(label.slice(0, at), mark, label.slice(at + needle.length));
     }
 
+    // The rows still visible while filtering, in page order, and which one the
+    // arrow keys are standing on. Built fresh by every apply(), because any
+    // keystroke can change what is visible.
+    let matches = [];
+    let activeIndex = -1;
+
+    function setActive(index) {
+        if (activeIndex >= 0 && activeIndex < matches.length) {
+            matches[activeIndex].classList.remove("is-active");
+        }
+        activeIndex = index;
+        if (index >= 0 && index < matches.length) {
+            matches[index].classList.add("is-active");
+        }
+    }
+
+    /** The bookmark the arrows are on, or the only match when there is one. */
+    function currentRow() {
+        if (activeIndex >= 0 && activeIndex < matches.length) return matches[activeIndex];
+        if (matches.length === 1) return matches[0];
+        return null;
+    }
+
+    /** Follows a match, in this tab, or in a new one with Alt+Enter. */
+    function openRow(row, newTab) {
+        const anchor = row.querySelector("a");
+        if (!anchor) return;
+        if (!newTab) {
+            anchor.click();
+            return;
+        }
+        // A plain click() on an existing anchor never opens a new tab, so the
+        // address is handed to a throwaway <a target="_blank"> instead.
+        const copy = document.createElement("a");
+        copy.href = anchor.href;
+        copy.target = "_blank";
+        copy.rel = "noopener";
+        document.body.append(copy);
+        copy.click();
+        copy.remove();
+    }
+
     function apply() {
         const needle = input.value.trim().toLowerCase();
         let shown = 0;
         let total = 0;
+        matches = [];
 
         for (const category of document.querySelectorAll("#bookmarks .category")) {
             let visibleHere = 0;
@@ -58,7 +103,10 @@ const Filter = (() => {
                 // The anchor's parent <li> is the row, the category is the box.
                 anchor.parentElement.hidden = !hit;
                 paint(anchor, needle);
-                if (hit) visibleHere++;
+                if (hit) {
+                    visibleHere++;
+                    matches.push(anchor.parentElement);
+                }
             }
 
             // A category with nothing left in it is just noise while filtering.
@@ -71,6 +119,7 @@ const Filter = (() => {
                 ? `${total} ${total === 1 ? "bookmark" : "bookmarks"}`
                 : `${shown} of ${total}`;
         bar.dataset.empty = shown === 0 ? "true" : "false";
+        setActive(-1);
     }
 
     function focus(append) {
@@ -91,12 +140,32 @@ const Filter = (() => {
         bar.hidden = true;
         input.value = "";
         input.blur();
+        matches = [];
+        setActive(-1);
         apply();
     }
 
     input.addEventListener("input", apply);
 
     input.addEventListener("keydown", (event) => {
+        // The arrows walk the visible matches in page order, wrapping around.
+        if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+            event.preventDefault();
+            if (!matches.length) return;
+            const delta = event.key === "ArrowDown" ? 1 : -1;
+            setActive((activeIndex + delta + matches.length) % matches.length);
+            return;
+        }
+        // Enter follows the highlighted bookmark, or the only match. Alt+Enter
+        // opens it in a new tab. Typing in the filter never navigates on its
+        // own, so Enter was previously doing nothing here.
+        if (event.key === "Enter") {
+            const row = currentRow();
+            if (!row) return;
+            event.preventDefault();
+            openRow(row, event.altKey);
+            return;
+        }
         if (event.key !== "Escape") return;
         // Stop the settings menu from also treating this as "close".
         event.preventDefault();
@@ -128,6 +197,16 @@ const Filter = (() => {
         // The input was not focused when this key went down, so the character
         // has to be put in by hand.
         open(event.key);
+    });
+
+    // Hovering a match also moves the arrow highlight, so the mouse and the
+    // keyboard point at the same row and Enter follows whichever is current.
+    document.getElementById("bookmarks")?.addEventListener("mouseover", (event) => {
+        if (bar.hidden) return;
+        const row = event.target.closest("li");
+        if (!row) return;
+        const index = matches.indexOf(row);
+        if (index >= 0) setActive(index);
     });
 
     return { open, close, apply };
