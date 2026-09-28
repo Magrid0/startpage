@@ -145,6 +145,61 @@ const Bookmarks = (() => {
         return commit(bookmarks);
     }
 
+    // --- what needs a second look ----------------------------------------
+
+    /**
+     * Everything worth drawing attention to in the bookmark list, for the
+     * settings menu: a bookmark with no address yet, one without a name (the
+     * page would show the address), an address saved twice, and a category
+     * that would render as an empty box. Nothing here is a rule being broken:
+     * each one is a thing the list will look wrong without.
+     */
+    function issues(bookmarks = getBookmarks()) {
+        // Two addresses count as the same when the only difference is the
+        // scheme or a trailing slash: "https://example.com/" and
+        // "http://example.com" are the same page.
+        const same = (url) =>
+            url.replace(/^https?:\/\//i, "").replace(/\/+$/, "").toLowerCase();
+        const counts = new Map();
+        for (const category of bookmarks) {
+            for (const link of category.links) {
+                if (!link.url) continue;
+                const key = same(link.url);
+                counts.set(key, (counts.get(key) || 0) + 1);
+            }
+        }
+
+        const found = [];
+        bookmarks.forEach((category, categoryIndex) => {
+            if (!category.links.length) {
+                found.push({ category: categoryIndex, link: -1, kind: "empty" });
+            }
+            category.links.forEach((link, linkIndex) => {
+                if (!link.url) {
+                    found.push({
+                        category: categoryIndex,
+                        link: linkIndex,
+                        kind: "noAddress",
+                    });
+                } else if (!link.title) {
+                    found.push({
+                        category: categoryIndex,
+                        link: linkIndex,
+                        kind: "noName",
+                    });
+                }
+                if (link.url && counts.get(same(link.url)) > 1) {
+                    found.push({
+                        category: categoryIndex,
+                        link: linkIndex,
+                        kind: "duplicate",
+                    });
+                }
+            });
+        });
+        return found;
+    }
+
     return {
         render,
         addCategory,
@@ -155,6 +210,7 @@ const Bookmarks = (() => {
         updateLink,
         removeLink,
         moveLink,
+        issues,
     };
 })();
 

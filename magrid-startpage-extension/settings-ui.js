@@ -54,6 +54,18 @@ const SettingsUI = (() => {
         };
     };
 
+    /** A plain copy of a settings slice, for an undo to put back. */
+    const deepCopy = (value) => JSON.parse(JSON.stringify(value));
+
+    // What each bookmark issue says on the editor row. The kinds come from
+    // Bookmarks.issues(); the copy lives here because it is presentation.
+    const ISSUE_TEXT = {
+        noAddress: "No address yet.",
+        noName: "No name — the address will be shown.",
+        duplicate: "Same address as another bookmark.",
+        empty: "Nothing here yet — it will not show until it has a bookmark.",
+    };
+
     function toast(message, isError = false) {
         clearTimeout(toastTimer);
         els.toast.textContent = message;
@@ -576,7 +588,7 @@ const SettingsUI = (() => {
         return input;
     }
 
-    function buildEditorLink(categoryIndex, link, linkIndex) {
+    function buildEditorLink(categoryIndex, link, linkIndex, found) {
         const row = document.createElement("div");
         row.className = "editor-link";
         row.draggable = true;
@@ -594,6 +606,26 @@ const SettingsUI = (() => {
         const url = textInput("editor-link-url", link.url, "https://");
         url.dataset.role = "url";
 
+        // A bare host gets a scheme when it is saved, which is almost always
+        // what was meant. Say so while it is still being typed, so the address
+        // quietly growing an https:// is never a surprise.
+        const schemeHint = document.createElement("span");
+        schemeHint.className = "editor-hint";
+        schemeHint.hidden = true;
+        url.addEventListener("input", () => {
+            const typed = url.value.trim();
+            const willNormalize =
+                Boolean(typed) && !/^[a-z][a-z0-9+.-]*:/i.test(typed);
+            schemeHint.hidden = !willNormalize;
+            schemeHint.textContent =
+                `No scheme — saved as https://${typed.replace(/^\/+/, "")}`;
+        });
+
+        const issues = found.filter(
+            (issue) =>
+                issue.category === categoryIndex && issue.link === linkIndex,
+        );
+
         row.append(
             handle,
             title,
@@ -601,11 +633,18 @@ const SettingsUI = (() => {
             iconButton("↑", "link-up"),
             iconButton("↓", "link-down"),
             iconButton("✕", "link-delete", "is-danger"),
+            schemeHint,
         );
+        for (const issue of issues) {
+            const note = document.createElement("span");
+            note.className = "editor-issue";
+            note.textContent = ISSUE_TEXT[issue.kind] ?? issue.kind;
+            row.append(note);
+        }
         return row;
     }
 
-    function buildEditorCategory(category, categoryIndex) {
+    function buildEditorCategory(category, categoryIndex, found) {
         const block = document.createElement("div");
         block.className = "editor-category";
         block.draggable = true;
@@ -633,8 +672,16 @@ const SettingsUI = (() => {
         const links = document.createElement("div");
         links.className = "editor-links";
         category.links.forEach((link, linkIndex) => {
-            links.append(buildEditorLink(categoryIndex, link, linkIndex));
+            links.append(buildEditorLink(categoryIndex, link, linkIndex, found));
         });
+        // A category that would render as an empty box is worth a word, right
+        // where the missing bookmarks would sit.
+        if (!category.links.length) {
+            const note = document.createElement("span");
+            note.className = "editor-issue";
+            note.textContent = ISSUE_TEXT.empty;
+            links.append(note);
+        }
 
         const addLink = document.createElement("button");
         addLink.type = "button";
@@ -646,11 +693,33 @@ const SettingsUI = (() => {
         return block;
     }
 
+    /** One factual line about what needs a second look, or "all good". */
+    function renderIssueSummary(found) {
+        if (!els.bookmarkIssues) return;
+        const byKind = {};
+        for (const issue of found) {
+            byKind[issue.kind] = (byKind[issue.kind] || 0) + 1;
+        }
+        const render = (count, singular, plural) =>
+            `${count} ${count === 1 ? singular : plural}`;
+        const parts = [];
+        if (byKind.noAddress) parts.push(`${render(byKind.noAddress, "has", "have")} no address yet`);
+        if (byKind.noName) parts.push(`${render(byKind.noName, "has", "have")} no name`);
+        if (byKind.duplicate) parts.push(`${render(byKind.duplicate, "shares", "share")} an address`);
+        if (byKind.empty) parts.push(`${render(byKind.empty, "category is", "categories are")} empty`);
+        els.bookmarkIssues.textContent = parts.length
+            ? `Needs attention: ${parts.join(", ")}.`
+            : "No bookmarks need attention.";
+        els.bookmarkIssues.classList.toggle("has-issues", parts.length > 0);
+    }
+
     function renderEditor() {
         els.categoriesEditor.textContent = "";
+        const found = Bookmarks.issues();
         Settings.get().bookmarks.forEach((category, index) => {
-            els.categoriesEditor.append(buildEditorCategory(category, index));
+            els.categoriesEditor.append(buildEditorCategory(category, index, found));
         });
+        renderIssueSummary(found);
     }
 
     /**
@@ -987,6 +1056,7 @@ const SettingsUI = (() => {
         weatherStatus: "weather-status",
         addCategory: "category-add",
         categoriesEditor: "categories-editor",
+        bookmarkIssues: "bookmark-issues",
         dataExport: "data-export",
         dataCopy: "data-copy",
         dataImport: "data-import",

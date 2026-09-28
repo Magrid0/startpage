@@ -557,6 +557,39 @@
     gap: 6px;
 }
 
+/* The notes under a row wrap to their own line, so they never crowd the
+   inputs or push the drag handle out of the row. */
+.editor-link {
+    flex-wrap: wrap;
+}
+
+.editor-link > .editor-issue,
+.editor-link > .editor-hint {
+    flex: 1 1 100%;
+    order: 10;
+    margin-left: 24px;
+}
+
+.editor-issue {
+    font-size: 11px;
+    color: var(--settings-danger);
+}
+
+.editor-hint {
+    font-size: 11px;
+    color: var(--settings-muted);
+}
+
+/* The note under a category with no bookmarks sits where the rows would. */
+.editor-links > .editor-issue {
+    margin: 0 0 4px 24px;
+}
+
+/* The summary line above the editor turns the colour of a warning. */
+.field-hint.has-issues {
+    color: var(--settings-danger);
+}
+
 .editor-category-head {
     padding-bottom: 8px;
     border-bottom: 1px dashed var(--settings-border);
