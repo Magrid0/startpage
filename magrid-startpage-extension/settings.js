@@ -990,6 +990,70 @@ const Settings = (() => {
                 return "";
             }
         },
+        /**
+         * Every picture in the library, for the grid in the wallpaper tab.
+         * The ids alone are cheap to read; thumbnails are fetched per tile.
+         */
+        images() {
+            return imageIds();
+        },
+        /**
+         * A small JPEG of a library picture, as a data URL, for a tile in that
+         * grid. The stored picture is downscaled to fit `size` on its longest
+         * edge, so looking at a grid of pictures never decodes every full-size
+         * wallpaper. A data URL also has no lifecycle to manage, unlike the
+         * object URLs the wallpaper itself uses. Empty when the picture is
+         * gone or cannot be decoded.
+         */
+        async imageThumbnail(id, size = 320) {
+            if (!IMAGE_ID.test(id)) return "";
+            let blob = null;
+            try {
+                blob = await assetGet(imageKey(id));
+            } catch {
+                return "";
+            }
+            if (!blob) return "";
+            let bitmap;
+            try {
+                bitmap = await createImageBitmap(blob);
+            } catch (error) {
+                console.warn("Could not read the picture for a thumbnail:", error);
+                return "";
+            }
+            try {
+                const scale = Math.min(1, size / Math.max(bitmap.width, bitmap.height));
+                const canvas = document.createElement("canvas");
+                canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+                canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+                canvas
+                    .getContext("2d")
+                    .drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+                return canvas.toDataURL("image/jpeg", 0.82);
+            } finally {
+                bitmap.close();
+            }
+        },
+        /**
+         * Puts a picture that is already in the library on screen, keeping its
+         * id rather than copying the file: a preset that shares the picture
+         * keeps sharing the one copy on disk.
+         */
+        async applyLibraryImage(id) {
+            if (!IMAGE_ID.test(id) || !(await assetExists(id))) {
+                throw new Error("That picture is not in this browser any more.");
+            }
+            const previous = state.wallpaper.image;
+            state = sanitize(
+                merge(state, {
+                    wallpaper: { mode: "image", image: id, lastImage: id },
+                }),
+            );
+            await storageWrite(state);
+            await apply();
+            notify();
+            await collectImage(previous);
+        },
         subscribe(listener) {
             listeners.add(listener);
             return () => listeners.delete(listener);
