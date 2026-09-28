@@ -426,7 +426,43 @@
                                     <option value="24">24 hour</option>
                                 </select>
                             </label>
+                            <label class="field field-wide">
+                                <span>Timezone</span>
+                                <input
+                                    type="text"
+                                    data-setting="widgets.clock.timezone"
+                                    list="timezone-options"
+                                    placeholder="Europe/Rome — empty is your own time"
+                                    spellcheck="false"
+                                />
+                                <datalist id="timezone-options">
+                                    <option value="UTC"></option>
+                                    <option value="Europe/London"></option>
+                                    <option value="Europe/Rome"></option>
+                                    <option value="Europe/Berlin"></option>
+                                    <option value="Europe/Paris"></option>
+                                    <option value="America/New_York"></option>
+                                    <option value="America/Los_Angeles"></option>
+                                    <option value="Asia/Tokyo"></option>
+                                    <option value="Asia/Shanghai"></option>
+                                    <option value="Australia/Sydney"></option>
+                                </datalist>
+                            </label>
+                            <label class="field field-wide">
+                                <span>Date format</span>
+                                <input
+                                    type="text"
+                                    data-setting="widgets.clock.dateTemplate"
+                                    placeholder='{wd}, {mo} {d} — empty is your locale'
+                                    spellcheck="false"
+                                />
+                            </label>
                         </div>
+                        <p class="field-hint">
+                            {wd} is the weekday, {mo} the month name, {d} the day,
+                            {m} the month number and {y} the year. Leave the boxes
+                            empty for the browser's own time zone and date.
+                        </p>
 
                         <h2>Weather</h2>
                         <div class="field-grid">

@@ -128,6 +128,12 @@ const DEFAULTS = {
             enabled: true,
             // "auto" follows the browser locale, like before.
             hourFormat: "auto",
+            // An IANA timezone name (Europe/Rome, UTC...). Empty keeps the
+            // browser's own time, which is the quiet default.
+            timezone: "",
+            // How the date is written, with {wd} {mo} {d} {m} {y} tokens.
+            // Empty keeps the browser locale's own short date.
+            dateTemplate: "",
         },
     },
 
@@ -664,6 +670,8 @@ function sanitize(input) {
             clock: {
                 enabled: asBool(clock.enabled, true),
                 hourFormat: asEnum(clock.hourFormat, ["auto", "12", "24"], "auto"),
+                timezone: asString(clock.timezone, "", 60),
+                dateTemplate: asString(clock.dateTemplate, "", 80),
             },
         },
         presets: Array.isArray(source.presets)
