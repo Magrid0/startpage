@@ -17,7 +17,7 @@ survive extension updates.
 
 | Tab | What it does |
 | --- | --- |
-| Presets | Your saved looks as a gallery: save the look on screen under a name, then click a card to bring it back, update it, rename it or delete it. Five starter looks sit below the gallery. |
+| Presets | Your saved looks as a gallery: save the look on screen under a name, then click a card to bring it back, update it, rename it or delete it. |
 | Appearance | Colours for text, category titles, bookmarks (normal, hover, visited) and the clock/weather widgets. Font family and sizes. Panel opacity and backdrop blur. Layout: columns, spacing, panel width, corner rounding. Your name and the greeting wording. |
 | Wallpaper | Pick a local image or use an image URL, and remove it again. A picture over 2 MB is made smaller to fit the screen, and the tab says so. A picked image that something else has replaced can be brought back with one button. A slider darkens the wallpaper behind the text. |
 | Widgets | Show/hide the clock and the weather, 12/24 hour format, weather city and OpenWeatherMap API key. |
@@ -27,9 +27,10 @@ survive extension updates.
 Colours, blur, opacity and font sizes apply live, so you can see the effect
 while the menu is open.
 
-**No wallpaper is bundled.** The whole extension is about 120 kB, and the page
-starts on a flat background colour until you pick a picture in the Wallpaper
-tab. While there is no wallpaper, the gear button pulses gently to point at it.
+**No wallpaper is bundled.** The whole extension is about 170 kB of plain files
+(under 50 kB in the zip that gets uploaded), and the page starts on a flat
+background colour until you pick a picture in the Wallpaper tab. While there is
+no wallpaper, the gear button pulses gently to point at it.
 
 **A large picture is made smaller.** A wallpaper is only ever seen scaled to
 fill the screen, so most of an 8 MB picture from a phone is pixels no display
@@ -74,16 +75,6 @@ undo brought back is left alone.
 
 A picture preset copied from another browser has no file here, so that card says
 so and keeps the background you already have rather than blanking the page.
-
-**Starter looks.** Nord, Dracula, Solarized dark, Solarized light and Amoled
-black are the five looks that ship with the extension, drawn as chips of their
-own backgrounds below the gallery. They are plain CSS gradients, not images, so
-they cost the package nothing, ask for no permission and cannot fail to load.
-Use one as it is, or change the colours and save the result as your own.
-
-That list is data, not markup: add an entry to `PRESETS` in `presets.js` and a
-chip appears. Starter looks and your own go through the same validation and the
-same code to apply, so they behave identically.
 
 Presets are stored in the settings JSON and travel with an export. The
 pictures do not: an export carries the colours, the panel and *which* image each
@@ -217,14 +208,14 @@ Files:
 
 | File | Role |
 | --- | --- |
+| `boot.js` | Reads the cached wallpaper while the page is still parsing, so the first paint is the wallpaper. |
 | `settings.js` | Settings schema, defaults, persistence, wallpaper storage, applying values as CSS variables. |
 | `settings-ui.js` | The settings menu: forms, preset buttons, bookmark editor, import/export. |
-| `presets.js` | The theme presets: colours, panel and background for each one. Data only. |
 | `bookmarks.js` | Bookmark model and rendering of the categories. |
 | `filter.js` | Type to filter the bookmark list on the page. |
-| `settings.css` | Styling for the settings menu. |
-| `style.css` | The start page itself. Colours, fonts, opacities and layout are CSS variables with the defaults in `:root`. |
 | `clock.js`, `weather.js`, `greeting.js` | Widgets. All three read the settings menu. |
+| `style.css` | The start page itself. Colours, fonts, opacities and layout are CSS variables with the defaults in `:root`. |
+| `settings.css` | Styling for the settings menu. |
 
 To add a new setting: add the key to `DEFAULTS` and to `sanitize()` in
 `settings.js`, add a `--variable` default to `:root` in `style.css`, apply it
