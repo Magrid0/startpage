@@ -201,9 +201,27 @@ const SettingsUI = (() => {
         updateClockPreview();
     }
 
+    /**
+     * Controls that are only a choice once the edit is finished, and so must
+     * never be written while it is still half done.
+     *
+     * A colour field reports #000000 for every prefix of a hex, so writing on
+     * every keystroke saved black text: the settings took the black, the page
+     * showed it, and every tab afterwards opened unreadable. A half-typed font
+     * name has the same shape of problem, falling back to a font nobody asked
+     * for and shifting the text metrics with it. Both wait for the "change"
+     * that says the value is settled.
+     */
+    const commitsWhenFinished = (input) =>
+        input.type === "color" || input.dataset.commit === "change";
+
     function bindSettingInputs() {
         for (const input of document.querySelectorAll("[data-setting]")) {
-            if (input.type === "checkbox" || input.tagName === "SELECT") {
+            if (
+                input.type === "checkbox" ||
+                input.tagName === "SELECT" ||
+                commitsWhenFinished(input)
+            ) {
                 input.addEventListener("change", () => commitSetting(input));
             } else {
                 // Colours, ranges and text fields write on every keystroke, but

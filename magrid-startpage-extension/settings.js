@@ -439,13 +439,84 @@ const imageIds = () =>
 // Anything coming from disk (or from an imported file the user may have edited
 // by hand) goes through here, so a malformed value can never brick the page.
 
-const HEX_COLOR = /^#(?:[0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
+/**
+ * Only an opaque colour, three or six digits. The four and eight digit forms
+ * carry an alpha channel, and a translucent text colour is not a choice
+ * anybody makes on purpose: it renders as text that is not there.
+ */
+const HEX_COLOR = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
 
 const pick = (value, fallback, test) =>
     test && test(value) ? value : fallback;
 
 const asColor = (value, fallback) =>
     pick(value, fallback, (v) => typeof v === "string" && HEX_COLOR.test(v));
+
+/**
+ * The page background, which style.css owns and nothing in the menu can
+ * change. The readability check below is measured against it, so the two have
+ * to agree; a check in the test suite reads the real value back out of the
+ * page and fails if they ever drift apart.
+ */
+const PAGE_BACKGROUND = "#282828";
+
+/**
+ * Below this contrast a colour is not a text colour, it is a way of losing
+ * the text. It sits under the shipped palette on purpose: the default link
+ * colour is the dimmest thing the extension ships, and a check that rejected
+ * it would rewrite the defaults instead of the mistakes.
+ */
+const MIN_TEXT_CONTRAST = 2;
+
+const srgbChannel = (value) => {
+    const c = value / 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+};
+
+/** The relative luminance of an opaque hex colour, or null if it is not one. */
+function luminance(color) {
+    if (typeof color !== "string" || !HEX_COLOR.test(color)) return null;
+    const hex = color.replace("#", "");
+    const full =
+        hex.length === 3
+            ? hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2]
+            : hex;
+    const r = parseInt(full.slice(0, 2), 16);
+    const g = parseInt(full.slice(2, 4), 16);
+    const b = parseInt(full.slice(4, 6), 16);
+    if ([r, g, b].some((c) => Number.isNaN(c))) return null;
+    return (
+        0.2126 * srgbChannel(r) +
+        0.7152 * srgbChannel(g) +
+        0.0722 * srgbChannel(b)
+    );
+}
+
+/** The WCAG contrast ratio between two opaque colours, or 0 if either is not. */
+function contrast(one, other) {
+    const a = luminance(one);
+    const b = luminance(other);
+    if (a === null || b === null) return 0;
+    const [high, low] = a > b ? [a, b] : [b, a];
+    return (high + 0.05) / (low + 0.05);
+}
+
+/**
+ * A colour that is safe to read on the page background, or the fallback.
+ *
+ * A colour field reports #000000 for every half-typed hex, so a colour can
+ * reach the settings that nobody chose. Once it is stored it is not a flash,
+ * it is every tab from then on, and there is nothing on the page to say so.
+ * Here it is treated as what it is: bad input, and bad input goes back to the
+ * default, which is the same rule every other invalid value follows.
+ */
+const asReadableColor = (value, fallback) => {
+    const color = asColor(value, "");
+    if (!color) return fallback;
+    return contrast(color, PAGE_BACKGROUND) >= MIN_TEXT_CONTRAST
+        ? color
+        : fallback;
+};
 
 /**
  * Accepts a number, or a numeric string, inside the allowed range. Out of range
@@ -581,15 +652,20 @@ function sanitizeWallpaper(input) {
 function sanitizeTheme(source) {
     const theme = isPlainObject(source) ? source : {};
     return {
-        colorFg: asColor(theme.colorFg, DEFAULTS.theme.colorFg),
-        colorTitle: asColor(theme.colorTitle, DEFAULTS.theme.colorTitle),
-        colorLink: asColor(theme.colorLink, DEFAULTS.theme.colorLink),
-        colorLinkHover: asColor(theme.colorLinkHover, DEFAULTS.theme.colorLinkHover),
-        colorLinkVisited: asColor(
+        // Every one of these carries text on the page background, so each one
+        // has to be readable against it, not merely a valid hex.
+        colorFg: asReadableColor(theme.colorFg, DEFAULTS.theme.colorFg),
+        colorTitle: asReadableColor(theme.colorTitle, DEFAULTS.theme.colorTitle),
+        colorLink: asReadableColor(theme.colorLink, DEFAULTS.theme.colorLink),
+        colorLinkHover: asReadableColor(
+            theme.colorLinkHover,
+            DEFAULTS.theme.colorLinkHover,
+        ),
+        colorLinkVisited: asReadableColor(
             theme.colorLinkVisited,
             DEFAULTS.theme.colorLinkVisited,
         ),
-        colorWidget: asColor(theme.colorWidget, DEFAULTS.theme.colorWidget),
+        colorWidget: asReadableColor(theme.colorWidget, DEFAULTS.theme.colorWidget),
         fontFamily: asString(theme.fontFamily, DEFAULTS.theme.fontFamily),
         sizeLinks: asNumber(theme.sizeLinks, 16, 8, 48),
         sizeTitle: asNumber(theme.sizeTitle, 20, 8, 64),
