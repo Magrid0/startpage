@@ -426,52 +426,6 @@
     filter: brightness(1.1);
 }
 
-/* A starter look is a chip of the background it applies, with the name on top.
-   The gradient comes from presets.js, so the chip cannot drift from it. */
-.preset-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin: 12px 0;
-}
-
-.preset {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 104px;
-    padding: 26px 14px 10px;
-    overflow: hidden;
-    color: #ffffff;
-    font-family: inherit;
-    font-size: 12px;
-    text-align: center;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
-    background-color: var(--settings-bg-soft);
-    background-size: cover;
-    border: 1px solid var(--settings-border);
-    border-radius: 9px;
-    cursor: pointer;
-}
-
-.preset:hover,
-.preset:focus-visible {
-    border-color: var(--settings-accent);
-}
-
-/* The swatch of colour that preset's links use, so the chips are told apart
-   even before you read the name. */
-.preset span::before {
-    content: "";
-    display: block;
-    width: 14px;
-    height: 3px;
-    margin: 0 auto 7px;
-    background: var(--preset-link, currentColor);
-    border-radius: 2px;
-}
-
 .button,
 .settings-panel .button {
     display: inline-block;
