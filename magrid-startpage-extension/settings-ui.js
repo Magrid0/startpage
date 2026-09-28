@@ -341,10 +341,17 @@ const SettingsUI = (() => {
      * then, and for a look with no background at all, the card shows the flat
      * page colour.
      */
+    /**
+     * The first paint of a preview, before any picture has been read.
+     *
+     * A gradient preset shows its gradient and a look with no background shows
+     * the flat page colour, so the card is never a blank box. A picture is
+     * read separately below: it comes out of the library, and a card that
+     * showed a colour until that read landed was showing a lie.
+     */
     function previewBackground(wallpaper) {
-        if (wallpaper.mode === "gradient") return wallpaper.gradient;
-        if (wallpaper.mode === "url" && wallpaper.url) {
-            return `url("${wallpaper.url.replace(/["\\\n\r]/g, "")}")`;
+        if (wallpaper.mode === "gradient" && wallpaper.gradient) {
+            return wallpaper.gradient;
         }
         return "linear-gradient(#2b2b2b, #2b2b2b)";
     }
@@ -373,7 +380,14 @@ const SettingsUI = (() => {
 
         const preview = document.createElement("div");
         preview.className = "preset-preview";
-        preview.style.background = previewBackground(preset.wallpaper);
+        const wallpaper = previewBackground(preset.wallpaper);
+        preview.style.background = wallpaper;
+        // The dimming layer over the picture, set from the preset so the card
+        // reads as dark as the page will.
+        preview.style.setProperty(
+            "--preview-dim",
+            String(preset.wallpaperDim ?? 0),
+        );
         // The panel sitting on the background, with sample text in the preset's
         // own colours: enough to tell two presets that share a background apart.
         const sample = document.createElement("div");
@@ -454,26 +468,35 @@ const SettingsUI = (() => {
 
         await Promise.all(
             presets.map(async (preset, index) => {
-                if (preset.wallpaper.mode !== "image") return;
-                const url = await Settings.imageUrl(preset.wallpaper.image);
                 const card = cards[index];
+                const preview = card?.querySelector(".preset-preview");
+                if (!preview) return;
+
+                // A picture, whichever way it is stored, is shown as itself.
+                // A url background is fetched by the browser the same way the
+                // page shows it; a library picture is read here and handed over
+                // as an object url.
+                if (preset.wallpaper.mode === "url" && preset.wallpaper.url) {
+                    const url = preset.wallpaper.url.replace(/["\\\n\r]/g, "");
+                    preview.style.backgroundImage = `url("${url}")`;
+                    return;
+                }
+                if (preset.wallpaper.mode !== "image") return;
+
+                const url = await Settings.imageUrl(preset.wallpaper.image);
+                if (galleryDraw !== draw) {
+                    if (url) URL.revokeObjectURL(url);
+                    return;
+                }
                 if (!url) {
-                    if (galleryDraw !== draw) return;
                     // The picture went, with the export or by hand. Say so on the
                     // card rather than showing a blank one.
                     card.classList.add("is-missing-image");
-                    const preview = card.querySelector(".preset-preview");
-                    preview.style.background = "linear-gradient(#2b2b2b, #2b2b2b)";
                     preview.title = "The picture is not in this browser any more";
                     return;
                 }
-                if (galleryDraw !== draw) {
-                    URL.revokeObjectURL(url);
-                    return;
-                }
                 previewUrls.push(url);
-                card.querySelector(".preset-preview").style.background =
-                    `url("${url}") center / cover`;
+                preview.style.backgroundImage = `url("${url}")`;
             }),
         );
     }

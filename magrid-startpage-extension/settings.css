@@ -359,9 +359,27 @@
     min-height: 96px;
     padding: 10px;
     background-color: #2b2b2b;
+    /* The preview shows the real background, so it needs the same sizing the
+       page uses, and its own dimming layer over the top. */
+    background-position: center;
     background-size: cover;
+    background-repeat: no-repeat;
     border-radius: 7px;
     overflow: hidden;
+    position: relative;
+}
+
+/* The dimming the preset was saved with, over the picture, so the card reads
+   as the page will rather than as a brighter version of it. */
+.preset-preview::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        rgba(0, 0, 0, var(--preview-dim, 0)),
+        rgba(0, 0, 0, var(--preview-dim, 0))
+    );
+    pointer-events: none;
 }
 
 .preset-sample {
@@ -375,6 +393,9 @@
     line-height: 1.5;
     border-radius: 6px;
     box-shadow: 0 0 12px rgba(0, 0, 0, 0.35);
+    /* Above the dimming layer, so the sample text is the preset's own colour
+       rather than the dimming's. */
+    position: relative;
 }
 
 /* A picture that came with the export but is not in this browser, or one that
@@ -387,6 +408,7 @@
     text-align: center;
     background: rgba(0, 0, 0, 0.7);
     border-radius: 6px;
+    position: relative;
 }
 
 .preset-name,
@@ -409,15 +431,31 @@
     max-width: 260px;
 }
 
+/* Five controls on one line.
+   Wrapping is what put Delete on a line of its own, and the row is about
+   267px against the 321px the five controls want at their comfortable
+   padding. The buttons are allowed to shrink rather than overflow the card:
+   the padding gives way first, then the gaps tighten, and the labels keep
+   every letter. The arrows are fixed, because a square control that is not
+   square reads as a mistake. */
 .preset-card .button-row {
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    width: 100%;
     margin: 0;
-    gap: 6px;
+    gap: 4px;
 }
 
 .preset-card .button {
-    padding: 5px 10px;
+    min-width: 0;
+    flex: 0 1 auto;
+    padding: 5px 7px;
     font-size: 12px;
+    white-space: nowrap;
+}
+
+.preset-card .icon-button {
+    flex: 0 0 auto;
+    padding: 5px 8px;
 }
 
 .button-primary {
