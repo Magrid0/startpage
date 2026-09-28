@@ -833,6 +833,31 @@ const SettingsUI = (() => {
         els.bookmarkIssues.classList.toggle("has-issues", parts.length > 0);
     }
 
+    /**
+     * Re-says what needs a second look after an inline edit, without
+     * rebuilding the rows, so the caret and any half-typed text in other
+     * rows are left exactly where they are. Fixing an address changes the
+     * issues list, and the old note on the row would otherwise stay.
+     */
+    function refreshEditorIssues() {
+        const found = Bookmarks.issues();
+        renderIssueSummary(found);
+        for (const row of els.categoriesEditor.querySelectorAll(".editor-link")) {
+            for (const old of row.querySelectorAll(".editor-issue")) old.remove();
+            const mine = found.filter(
+                (issue) =>
+                    issue.category === Number(row.dataset.category) &&
+                    issue.link === Number(row.dataset.index),
+            );
+            for (const issue of mine) {
+                const note = document.createElement("span");
+                note.className = "editor-issue";
+                note.textContent = ISSUE_TEXT[issue.kind] ?? issue.kind;
+                row.append(note);
+            }
+        }
+    }
+
     function renderEditor() {
         els.categoriesEditor.textContent = "";
         const found = Bookmarks.issues();
@@ -950,7 +975,7 @@ const SettingsUI = (() => {
         });
 
         // Inline text fields commit on blur or Enter.
-        els.categoriesEditor.addEventListener("change", (event) => {
+        els.categoriesEditor.addEventListener("change", async (event) => {
             const input = event.target.closest(".editor-input");
             if (!input) return;
 
@@ -961,18 +986,21 @@ const SettingsUI = (() => {
             if (role === "name") {
                 const name = input.value.trim() || "untitled";
                 input.value = name;
-                mutate(() => Bookmarks.renameCategory(categoryIndex, name));
+                await mutate(() => Bookmarks.renameCategory(categoryIndex, name));
                 return;
             }
 
             const linkIndex = Number(
                 input.closest(".editor-link").dataset.index,
             );
-            mutate(() =>
+            await mutate(() =>
                 Bookmarks.updateLink(categoryIndex, linkIndex, {
                     [role]: input.value.trim(),
                 }),
             );
+            // A title or address edit can settle an issue, and the note on
+            // the row and the summary line are stale until re-said.
+            refreshEditorIssues();
         });
 
         els.categoriesEditor.addEventListener("keydown", (event) => {
