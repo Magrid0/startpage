@@ -1075,6 +1075,7 @@ const Settings = (() => {
                     wallpaper: { mode: "image", image: id, lastImage: id },
                 }),
             );
+            onWrite?.(state);
             await storageWrite(state);
             await apply();
             notify();
@@ -1090,6 +1091,7 @@ const Settings = (() => {
         },
         async reset({ undoable = false } = {}) {
             state = sanitize(DEFAULTS);
+            onWrite?.(state);
             await storageClear();
             // A reset is meant to be a clean slate, so every picture goes with
             // it. Applying a preset is the way to set one aside instead. An
@@ -1111,6 +1113,7 @@ const Settings = (() => {
         async importJson(text) {
             const parsed = JSON.parse(text);
             state = sanitize(parsed);
+            onWrite?.(state);
             await storageWrite(state);
             await apply();
             notify();
@@ -1150,6 +1153,7 @@ const Settings = (() => {
                     wallpaper: { mode: "image", image, lastImage: image },
                 }),
             );
+            onWrite?.(state);
             await storageWrite(state);
             await apply();
             notify();
@@ -1162,6 +1166,7 @@ const Settings = (() => {
             state = sanitize(
                 merge(state, { wallpaper: { mode: "url", url: normalized } }),
             );
+            onWrite?.(state);
             await storageWrite(state);
             await apply();
             notify();
@@ -1185,6 +1190,7 @@ const Settings = (() => {
                     },
                 }),
             );
+            onWrite?.(state);
             await storageWrite(state);
             await apply();
             notify();
@@ -1204,6 +1210,7 @@ const Settings = (() => {
             const image = state.wallpaper.lastImage;
             if (!image) throw new Error("There is no image to bring back.");
             state = sanitize(merge(state, { wallpaper: { mode: "image", image } }));
+            onWrite?.(state);
             await storageWrite(state);
             await apply();
             notify();
@@ -1295,6 +1302,7 @@ const Settings = (() => {
          */
         async applyUndo(snapshot) {
             state = sanitize(merge(state, snapshot));
+            onWrite?.(state);
             await storageWrite(state);
             await apply();
             notify();
