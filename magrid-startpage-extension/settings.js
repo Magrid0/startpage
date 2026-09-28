@@ -209,9 +209,20 @@ function detectStorage() {
 
 const STORAGE_BACKEND = detectStorage();
 
+// The browser's storage API as one reference, so the Chromium fallback above
+// keeps working in Chrome too instead of reaching for the Firefox-only
+// `browser` name. Null on a plain page (open over http during development),
+// where localStorage below takes over.
+const storageAPI =
+    STORAGE_BACKEND === "browser"
+        ? browser
+        : STORAGE_BACKEND === "chrome"
+          ? chrome
+          : null;
+
 async function storageRead() {
-    if (STORAGE_BACKEND === "browser" || STORAGE_BACKEND === "chrome") {
-        const result = await browser.storage.local.get(SETTINGS_KEY);
+    if (storageAPI) {
+        const result = await storageAPI.storage.local.get(SETTINGS_KEY);
         return result[SETTINGS_KEY] ?? null;
     }
     const raw = localStorage.getItem(SETTINGS_KEY);
@@ -219,16 +230,16 @@ async function storageRead() {
 }
 
 async function storageWrite(value) {
-    if (STORAGE_BACKEND === "browser" || STORAGE_BACKEND === "chrome") {
-        await browser.storage.local.set({ [SETTINGS_KEY]: value });
+    if (storageAPI) {
+        await storageAPI.storage.local.set({ [SETTINGS_KEY]: value });
         return;
     }
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(value));
 }
 
 async function storageClear() {
-    if (STORAGE_BACKEND === "browser" || STORAGE_BACKEND === "chrome") {
-        await browser.storage.local.remove(SETTINGS_KEY);
+    if (storageAPI) {
+        await storageAPI.storage.local.remove(SETTINGS_KEY);
         return;
     }
     localStorage.removeItem(SETTINGS_KEY);
@@ -1070,10 +1081,10 @@ const Settings = (() => {
          *
          * A picture far bigger than the screen is made smaller first, so what
          * is stored is what is worth showing rather than every pixel of a phone
-         * photo. A normal picture is stored exactly as you picked it. The picture it
-         * replaces is forgotten, so its file is deleted once no preset needs it
-         * any more; applying a preset is the way to set a picture aside
-         * instead of losing it.
+         * photo. A normal picture is stored exactly as you picked it. The
+         * picture it replaces is forgotten, so its file is deleted once no
+         * preset needs it any more; applying a preset is the way to set a
+         * picture aside instead of losing it.
          */
         async useWallpaperFile(file) {
             if (!file) return;
