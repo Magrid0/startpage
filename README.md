@@ -103,15 +103,15 @@ Appearance → Layout has five sliders:
 
 Everything a widget can do beyond its plain default is off until you ask for it.
 
-- **Time zone** — the clock normally shows the browser's own time. Typing a
-  time zone name (an IANA one such as `Europe/Rome` or `UTC`) moves both the
-  time and the date to that zone, so the page can answer "what time is it at
-  home?" while you are away. Empty is your own time; a name the browser does
-  not know is quietly ignored, and the clock stays on local time.
-- **Date format** — empty uses the locale's own short date. Otherwise the date
-  is written from a template: `{wd}` the short weekday, `{mo}` the short month
-  name, `{d}` the day number, `{m}` the month number and `{y}` the year.
-  `{wd}, {mo} {d}` reads `Fri, Oct 2`.
+- **Time zone** — the clock normally shows the browser's own time. Picking a
+  zone from the list moves both the time and the date there, so the page can
+  answer "what time is it at home?" while you are away. "Your own time" is the
+  quiet default.
+- **Date format** — "Your locale's short date" keeps what the browser already
+  does. The other choices are clear arrangements of the day, month and year
+  (`Day / Month / Year`, `Day.Month.Year`, `Month Day, Year`, ...). Under the
+  two choices a line previews the clock exactly as the corner widget will show
+  it, so the result is visible before you close the menu.
 - **Forecast** — off by default, so a default tab makes no forecast call at
   all. `Next 12 hours` lists the coming four three-hour steps with their icons;
   `Next 3 days` gives each day's low and high. Both come from the same
