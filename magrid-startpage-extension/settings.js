@@ -128,12 +128,12 @@ const DEFAULTS = {
             enabled: true,
             // "auto" follows the browser locale, like before.
             hourFormat: "auto",
-            // An IANA timezone name (Europe/Rome, UTC...). Empty keeps the
-            // browser's own time, which is the quiet default.
-            timezone: "",
             // How the date is written, with {wd} {mo} {d} {m} {y} tokens.
             // Empty keeps the browser locale's own short date.
             dateTemplate: "",
+            // Extra clocks under the main one, each an IANA timezone with an
+            // optional label. Empty by default, so the corner shows one clock.
+            zones: [],
         },
     },
 
@@ -491,6 +491,9 @@ const newImageId = () =>
 /** How many looks you can keep. Each is a handful of strings, so this is roomy. */
 const MAX_PRESETS = 24;
 
+/** How many extra clocks the corner can line up. */
+const MAX_CLOCK_ZONES = 6;
+
 const asNullableNumber = (value, fallback, min, max) =>
     value === null || value === undefined
         ? null
@@ -670,8 +673,19 @@ function sanitize(input) {
             clock: {
                 enabled: asBool(clock.enabled, true),
                 hourFormat: asEnum(clock.hourFormat, ["auto", "12", "24"], "auto"),
-                timezone: asString(clock.timezone, "", 60),
                 dateTemplate: asString(clock.dateTemplate, "", 80),
+                zones: Array.isArray(clock.zones)
+                    ? clock.zones
+                          .slice(0, MAX_CLOCK_ZONES)
+                          .map((entry) => {
+                              const zone = isPlainObject(entry) ? entry : {};
+                              return {
+                                  zone: asString(zone.zone, "", 60).trim(),
+                                  label: asString(zone.label, "", 30).trim(),
+                              };
+                          })
+                          .filter((entry) => entry.zone)
+                    : [],
             },
         },
         presets: Array.isArray(source.presets)

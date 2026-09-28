@@ -862,6 +862,71 @@ const SettingsUI = (() => {
         renderEditor();
     }
 
+    // --- extra time zones ------------------------------------------------
+
+    // The same ceiling the sanitising settings module applies to the list.
+    const MAX_CLOCK_ZONES = 6;
+
+    /** One small line per extra time zone: a title and the zone it is. */
+    function renderZones() {
+        els.clockZonesEditor.textContent = "";
+        Settings.get().widgets.clock.zones.forEach((zone, index) => {
+            const row = document.createElement("div");
+            row.className = "clock-zone-row";
+            row.dataset.index = String(index);
+
+            const name = document.createElement("span");
+            name.className = "editor-zone-name";
+            name.textContent = zone.zone;
+
+            const label = textInput("clock-zone-label", zone.label, zone.zone);
+            label.dataset.role = "label";
+
+            row.append(label, name, iconButton("✕", "zone-delete"));
+            els.clockZonesEditor.append(row);
+        });
+    }
+
+    function bindZones() {
+        els.clockZoneAdd.addEventListener("click", async () => {
+            const zones = Settings.get().widgets.clock.zones;
+            if (zones.length >= MAX_CLOCK_ZONES) {
+                toast(`The corner fits ${MAX_CLOCK_ZONES} clocks at most.`);
+                return;
+            }
+            await mutate(() =>
+                Settings.set({
+                    widgets: {
+                        clock: { zones: [...zones, { zone: els.clockZoneOptions.value, label: "" }] },
+                    },
+                }),
+            );
+            renderZones();
+        });
+
+        els.clockZonesEditor.addEventListener("click", (event) => {
+            const button = event.target.closest("[data-action]");
+            if (button?.dataset.action !== "zone-delete") return;
+            const index = Number(button.closest(".clock-zone-row")?.dataset.index);
+            if (Number.isNaN(index)) return;
+            const zones = Settings.get().widgets.clock.zones.filter((_, i) => i !== index);
+            mutate(() => Settings.set({ widgets: { clock: { zones } } }));
+            renderZones();
+        });
+
+        // A title is only committed when the field is left, so typing in it
+        // never writes the settings a dozen times.
+        els.clockZonesEditor.addEventListener("change", (event) => {
+            const input = event.target.closest("[data-role='label']");
+            if (!input || !(input instanceof HTMLInputElement)) return;
+            const index = Number(input.closest(".clock-zone-row")?.dataset.index);
+            const zones = Settings.get().widgets.clock.zones.map((zone, i) =>
+                i === index ? { ...zone, label: input.value } : zone,
+            );
+            mutate(() => Settings.set({ widgets: { clock: { zones } } }));
+        });
+    }
+
     function bindEditor() {
         els.addCategory.addEventListener("click", async () => {
             await editorAction(() => Bookmarks.addCategory());
@@ -1198,6 +1263,9 @@ const SettingsUI = (() => {
         cityOptions: "weather-city-options",
         weatherStatus: "weather-status",
         clockPreview: "clock-preview",
+        clockZoneOptions: "clock-zone-options",
+        clockZoneAdd: "clock-zone-add",
+        clockZonesEditor: "clock-zones-editor",
         addCategory: "category-add",
         categoriesEditor: "categories-editor",
         bookmarkIssues: "bookmark-issues",
@@ -1233,6 +1301,7 @@ const SettingsUI = (() => {
         contentsBuilt = true;
         renderEditor();
         renderGallery();
+        renderZones();
         // The menu is now drawn from whatever the settings are at this moment,
         // so the next change is compared against that rather than against
         // whatever was on disk when the page loaded.
@@ -1261,6 +1330,7 @@ const SettingsUI = (() => {
             state.greetingName,
             state.greetingTemplate,
         ]),
+        zones: JSON.stringify(state.widgets.clock.zones),
         wallpaper: JSON.stringify(state.wallpaper),
         bookmarks: JSON.stringify(state.bookmarks),
         presets: JSON.stringify(state.presets),
@@ -1274,6 +1344,7 @@ const SettingsUI = (() => {
             return;
         }
         if (next.inputs !== drawn.inputs) fillInputs();
+        if (next.zones !== drawn.zones) renderZones();
         if (next.wallpaper !== drawn.wallpaper) {
             refreshWallpaperInfo();
         }
@@ -1293,6 +1364,7 @@ const SettingsUI = (() => {
         bindWallpaper();
         bindWeather();
         bindEditor();
+        bindZones();
         bindData();
 
         // Settings that arrived from disk, from another tab, or from a write of

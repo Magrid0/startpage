@@ -223,6 +223,33 @@ a:hover {
     padding-top: 8px;
 }
 
+/* The extra time zone clocks, one small split line each under the date. */
+.clocks {
+    margin-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+    padding-top: 8px;
+}
+
+.clocks[hidden] {
+    display: none;
+}
+
+.clock-line {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.clock-zone {
+    opacity: 0.8;
+}
+
+.clock-time {
+    font-weight: bold;
+}
+
 #greeting {
     font-weight: bold;
 }

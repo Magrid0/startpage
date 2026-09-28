@@ -22,6 +22,7 @@
         <div class="clock-widget" id="clock-widget">
             <span id="time"></span>
             <span id="date"></span>
+            <div class="clocks" id="clocks" hidden></div>
         </div>
 
         <div class="container">
@@ -427,24 +428,6 @@
                                 </select>
                             </label>
                             <label class="field">
-                                <span>Timezone</span>
-                                <select data-setting="widgets.clock.timezone">
-                                    <option value="">Your own time</option>
-                                    <option value="UTC">UTC</option>
-                                    <option value="Europe/London">Europe/London</option>
-                                    <option value="Europe/Rome">Europe/Rome</option>
-                                    <option value="Europe/Berlin">Europe/Berlin</option>
-                                    <option value="Europe/Paris">Europe/Paris</option>
-                                    <option value="America/New_York">America/New_York</option>
-                                    <option value="America/Chicago">America/Chicago</option>
-                                    <option value="America/Los_Angeles">America/Los_Angeles</option>
-                                    <option value="Asia/Tokyo">Asia/Tokyo</option>
-                                    <option value="Asia/Shanghai">Asia/Shanghai</option>
-                                    <option value="Asia/Kolkata">Asia/Kolkata</option>
-                                    <option value="Australia/Sydney">Australia/Sydney</option>
-                                </select>
-                            </label>
-                            <label class="field">
                                 <span>Date format</span>
                                 <select data-setting="widgets.clock.dateTemplate">
                                     <option value="">Your locale's short date</option>
@@ -458,6 +441,30 @@
                             </label>
                         </div>
                         <p class="field-hint" id="clock-preview"></p>
+                        <p class="field-hint">
+                            Extra time zones add their own small clocks under the
+                            main one, with a title if you give them one.
+                        </p>
+                        <div class="field-row">
+                            <select id="clock-zone-options">
+                                <option value="UTC">UTC</option>
+                                <option value="Europe/London">Europe/London</option>
+                                <option value="Europe/Rome">Europe/Rome</option>
+                                <option value="Europe/Berlin">Europe/Berlin</option>
+                                <option value="Europe/Paris">Europe/Paris</option>
+                                <option value="America/New_York">America/New_York</option>
+                                <option value="America/Chicago">America/Chicago</option>
+                                <option value="America/Los_Angeles">America/Los_Angeles</option>
+                                <option value="Asia/Tokyo">Asia/Tokyo</option>
+                                <option value="Asia/Shanghai">Asia/Shanghai</option>
+                                <option value="Asia/Kolkata">Asia/Kolkata</option>
+                                <option value="Australia/Sydney">Australia/Sydney</option>
+                            </select>
+                            <button class="button" id="clock-zone-add" type="button">
+                                Add clock
+                            </button>
+                        </div>
+                        <div id="clock-zones-editor" class="clock-zones-editor"></div>
 
                         <h2>Weather</h2>
                         <div class="field-grid">
