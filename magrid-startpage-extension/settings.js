@@ -1231,6 +1231,17 @@ const Settings = (() => {
             await commit({ presets });
             return presets[index];
         },
+        /** Moves a preset from one position to another, the order of the cards. */
+        async movePreset(from, to) {
+            const presets = state.presets.slice();
+            if (from < 0 || from >= presets.length) return;
+            const [moved] = presets.splice(from, 1);
+            const target = Math.min(Math.max(to, 0), presets.length);
+            if (target === from) return;
+            presets.splice(target, 0, moved);
+            await commit({ presets });
+            return presets[target];
+        },
         async deletePreset(index, { undoable = false } = {}) {
             const existing = state.presets[index];
             if (!existing) throw new Error("There is no preset at that position.");

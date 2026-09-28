@@ -385,8 +385,11 @@ const SettingsUI = (() => {
             return node;
         };
         // No rename button: the name field above is the rename, and a control
-        // that only does what the field already does is clutter.
+        // that only does what the field already does is clutter. The arrows
+        // reorder the gallery; the editor reorders categories the same way.
         actions.append(
+            iconButton("↑", "preset-up"),
+            iconButton("↓", "preset-down"),
             button("use", "Use it", "button-primary"),
             button("update", "Update", "button-small"),
             button("delete", "Delete", "button-small button-danger"),
@@ -482,6 +485,12 @@ const SettingsUI = (() => {
                     () => Settings.deletePreset(index, { undoable: true }),
                     () => renderGallery(),
                 );
+            } else if (button.dataset.action === "preset-up") {
+                await mutate(() => Settings.movePreset(index, index - 1));
+                await renderGallery();
+            } else if (button.dataset.action === "preset-down") {
+                await mutate(() => Settings.movePreset(index, index + 1));
+                await renderGallery();
             }
         });
 
