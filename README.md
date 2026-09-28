@@ -20,7 +20,7 @@ survive extension updates.
 | Presets | Your saved looks as a gallery: save the look on screen under a name, then click a card to bring it back, update it, rename it or delete it. |
 | Appearance | Colours for text, category titles, bookmarks (normal, hover, visited) and the clock/weather widgets. Font family and sizes. Panel opacity and backdrop blur. Layout: columns, spacing, category width, panel width, corner rounding. Your name and the greeting wording. |
 | Wallpaper | Pick a local image or use an image URL, and remove it again. A picture over 2 MB is made smaller to fit the screen, and the tab says so. A picked image that something else has replaced can be brought back with one button. A slider darkens the wallpaper behind the text. |
-| Widgets | Show/hide the clock and the weather, 12/24 hour format, an optional timezone and date format for the clock, the weather city and OpenWeatherMap API key, and an opt-in forecast under the weather. |
+| Widgets | Show/hide the clock and the weather, 12/24 hour format, extra time zones and a date format for the clock, the weather city and OpenWeatherMap API key, and an opt-in forecast under the weather. |
 | Bookmarks | Add, rename, delete, reorder and edit categories and bookmarks. Drag to reorder, or use the arrow buttons. Dropping a bookmark on another category moves it. The editor points out what needs a second look: a bookmark with no address or no name, two that share an address, a category that holds nothing. An address typed without a scheme grows one automatically, and the hint says what it became. |
 | Data | Export/import the whole configuration as JSON, or reset to defaults. A reset and every other destructive action offer an Undo in the toast for a few seconds, so nothing is gone until you let it be. |
 
@@ -103,14 +103,16 @@ Appearance → Layout has five sliders:
 
 Everything a widget can do beyond its plain default is off until you ask for it.
 
-- **Time zone** — the clock normally shows the browser's own time. Picking a
-  zone from the list moves both the time and the date there, so the page can
-  answer "what time is it at home?" while you are away. "Your own time" is the
-  quiet default.
+- **Extra time zones** — the main clock is always your own time. Every zone you
+  add from the list gets its own small clock under the main one, so the page can
+  answer "what time is it at home?" while you are away. Give a zone a title and
+  that is what its line shows; leave it empty and the zone name is used. Empty by
+  default, so a default tab shows one clock. A zone the browser does not know is
+  quietly dropped.
 - **Date format** — "Your locale's short date" keeps what the browser already
   does. The other choices are clear arrangements of the day, month and year
   (`Day / Month / Year`, `Day.Month.Year`, `Month Day, Year`, ...). Under the
-  two choices a line previews the clock exactly as the corner widget will show
+  choices a line previews the main clock exactly as the corner widget will show
   it, so the result is visible before you close the menu.
 - **Forecast** — off by default, so a default tab makes no forecast call at
   all. `Next 12 hours` lists the coming four three-hour steps with their icons;
