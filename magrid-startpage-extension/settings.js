@@ -46,6 +46,11 @@ const DEFAULT_WEATHER = {
     lat: null,
     lon: null,
     apiKey: "4ffb38f99cbe1031fe02399b57be27f2",
+    // The opt-in forecast under the current weather: "off" does nothing at
+    // all, "hours" is the next 12 hours in 3-hour steps, "days" the next
+    // three calendar days. Off keeps a default tab from calling the forecast
+    // API it never shows.
+    forecast: "off",
 };
 
 const DEFAULTS = {
@@ -650,6 +655,11 @@ function sanitize(input) {
                 lat: asNullableNumber(weather.lat, null, -90, 90),
                 lon: asNullableNumber(weather.lon, null, -180, 180),
                 apiKey: asString(weather.apiKey, DEFAULT_WEATHER.apiKey, 100),
+                forecast: asEnum(
+                    weather.forecast,
+                    ["off", "hours", "days"],
+                    "off",
+                ),
             },
             clock: {
                 enabled: asBool(clock.enabled, true),

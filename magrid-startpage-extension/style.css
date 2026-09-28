@@ -177,6 +177,36 @@ a:hover {
     vertical-align: middle;
 }
 
+/* The opt-in forecast row under the current conditions: a row of small cells,
+   one per three-hour step or per day. The [hidden] rule must win over the flex
+   layout, so the row is really gone until a forecast has been fetched. */
+.weather-forecast {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+    margin-top: 8px;
+    font-size: 12px;
+}
+
+.weather-forecast[hidden] {
+    display: none;
+}
+
+.wf-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    white-space: nowrap;
+    opacity: 0.9;
+}
+
+.wf-icon {
+    height: 22px;
+    width: 22px;
+    object-fit: contain;
+    vertical-align: middle;
+}
+
 .clock-widget span {
     display: block;
     line-height: 1.4;

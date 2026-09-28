@@ -16,6 +16,7 @@
             <span id="weather-location">Loading...</span><br />
             <span id="weather-temp"></span>
             <img id="weather-icon" src="" alt="" />
+            <div class="weather-forecast" id="weather-forecast" hidden></div>
         </div>
 
         <div class="clock-widget" id="clock-widget">
@@ -459,6 +460,14 @@
                                     data-setting="widgets.weather.apiKey"
                                     spellcheck="false"
                                 />
+                            </label>
+                            <label class="field">
+                                <span>Forecast</span>
+                                <select data-setting="widgets.weather.forecast">
+                                    <option value="off">No forecast</option>
+                                    <option value="hours">Next 12 hours</option>
+                                    <option value="days">Next 3 days</option>
+                                </select>
                             </label>
                         </div>
                         <p class="field-hint" id="weather-status"></p>
