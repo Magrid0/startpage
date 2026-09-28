@@ -27,7 +27,7 @@ survive extension updates.
 Colours, blur, opacity and font sizes apply live, so you can see the effect
 while the menu is open.
 
-**No wallpaper is bundled.** The whole extension is about 170 kB of plain files
+**No wallpaper is bundled.** The whole extension is about 190 kB of plain files
 (under 50 kB in the zip that gets uploaded), and the page starts on a flat
 background colour until you pick a picture in the Wallpaper tab. While there is
 no wallpaper, the gear button pulses gently to point at it.
