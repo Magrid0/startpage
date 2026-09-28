@@ -1063,13 +1063,13 @@ const Settings = (() => {
         /**
          * Puts a picture that is already in the library on screen, keeping its
          * id rather than copying the file: a preset that shares the picture
-         * keeps sharing the one copy on disk.
+         * keeps sharing the one copy on disk. The picture it replaces stays in
+         * the library as a tile too, so switching tiles never loses one.
          */
         async applyLibraryImage(id) {
             if (!IMAGE_ID.test(id) || !(await assetExists(id))) {
                 throw new Error("That picture is not in this browser any more.");
             }
-            const previous = state.wallpaper.image;
             state = sanitize(
                 merge(state, {
                     wallpaper: { mode: "image", image: id, lastImage: id },
@@ -1079,7 +1079,6 @@ const Settings = (() => {
             await storageWrite(state);
             await apply();
             notify();
-            await collectImage(previous);
         },
         subscribe(listener) {
             listeners.add(listener);
@@ -1132,6 +1131,11 @@ const Settings = (() => {
          * A picture far bigger than the screen is made smaller first, so what
          * is stored is what is worth showing rather than every pixel of a phone
          * photo. A normal picture is stored exactly as you picked it.
+         *
+         * The picture it replaces is left in the library, so the grid can put
+         * it back: picking something new never deletes what was on screen. A
+         * reset, an import, or deleting what the picture is for (for example
+         * deleting the preset that uses it) is what clears the library.
          */
         async useWallpaperFile(file) {
             if (!file) return;
@@ -1139,7 +1143,6 @@ const Settings = (() => {
                 throw new Error("That file is not an image.");
             }
             const picture = await shrinkImage(file);
-            const previous = state.wallpaper.image;
             const image = newImageId();
             await assetPut(imageKey(image), picture);
             // What actually got stored, so a large picture that was made
@@ -1157,7 +1160,6 @@ const Settings = (() => {
             await storageWrite(state);
             await apply();
             notify();
-            await collectImage(previous);
         },
         async useWallpaperUrl(url) {
             const normalized = normalizeUrl(url);
