@@ -577,31 +577,67 @@ function sanitizeWallpaper(input) {
     };
 }
 
-/** A preset is a saved look: colours, panel and background, nothing else. */
+/** Colours, fonts and sizes. Shared by the settings and by a preset. */
+function sanitizeTheme(source) {
+    const theme = isPlainObject(source) ? source : {};
+    return {
+        colorFg: asColor(theme.colorFg, DEFAULTS.theme.colorFg),
+        colorTitle: asColor(theme.colorTitle, DEFAULTS.theme.colorTitle),
+        colorLink: asColor(theme.colorLink, DEFAULTS.theme.colorLink),
+        colorLinkHover: asColor(theme.colorLinkHover, DEFAULTS.theme.colorLinkHover),
+        colorLinkVisited: asColor(
+            theme.colorLinkVisited,
+            DEFAULTS.theme.colorLinkVisited,
+        ),
+        colorWidget: asColor(theme.colorWidget, DEFAULTS.theme.colorWidget),
+        fontFamily: asString(theme.fontFamily, DEFAULTS.theme.fontFamily),
+        sizeLinks: asNumber(theme.sizeLinks, 16, 8, 48),
+        sizeTitle: asNumber(theme.sizeTitle, 20, 8, 64),
+        sizeGreeting: asNumber(theme.sizeGreeting, 40, 12, 120),
+        greetingName: asString(theme.greetingName, DEFAULTS.theme.greetingName, 40),
+        greetingTemplate: asString(
+            theme.greetingTemplate,
+            DEFAULTS.theme.greetingTemplate,
+            120,
+        ),
+    };
+}
+
+/** The frosted card behind the content. Shared by the settings and a preset. */
+function sanitizePanel(source) {
+    const panel = isPlainObject(source) ? source : {};
+    return {
+        opacity: asNumber(panel.opacity, 0.6, 0, 1),
+        blur: asNumber(panel.blur, 7, 0, 40),
+    };
+}
+
+/** The column and size settings, the ones that make a page feel stretched. */
+function sanitizeLayout(source) {
+    const layout = isPlainObject(source) ? source : {};
+    return {
+        columns: asNumber(layout.columns, 0, 0, 6),
+        gap: asNumber(layout.gap, 20, 0, 80),
+        categoryWidth: asNumber(layout.categoryWidth, 0, 0, 400),
+        panelWidth: asNumber(layout.panelWidth, 0, 0, 1600),
+        radius: asNumber(layout.radius, 16, 0, 60),
+    };
+}
+
+/**
+ * A preset is a whole look: every colour, font, size, the panel, the layout
+ * and the background. It is deliberately the complete visual state and
+ * nothing else, so putting one back always gives you a page you can read and
+ * look at, whatever the settings were before.
+ */
 function sanitizePreset(input) {
     const source = isPlainObject(input) ? input : {};
-    const theme = isPlainObject(source.theme) ? source.theme : {};
-    const panel = isPlainObject(source.panel) ? source.panel : {};
     return {
         name: asString(source.name, "", 30).trim() || "Untitled",
-        theme: {
-            colorFg: asColor(theme.colorFg, DEFAULTS.theme.colorFg),
-            colorTitle: asColor(theme.colorTitle, DEFAULTS.theme.colorTitle),
-            colorLink: asColor(theme.colorLink, DEFAULTS.theme.colorLink),
-            colorLinkHover: asColor(
-                theme.colorLinkHover,
-                DEFAULTS.theme.colorLinkHover,
-            ),
-            colorLinkVisited: asColor(
-                theme.colorLinkVisited,
-                DEFAULTS.theme.colorLinkVisited,
-            ),
-            colorWidget: asColor(theme.colorWidget, DEFAULTS.theme.colorWidget),
-        },
-        panel: {
-            opacity: asNumber(panel.opacity, DEFAULTS.panel.opacity, 0, 1),
-            blur: asNumber(panel.blur, DEFAULTS.panel.blur, 0, 40),
-        },
+        theme: sanitizeTheme(source.theme),
+        panel: sanitizePanel(source.panel),
+        layout: sanitizeLayout(source.layout),
+        wallpaperDim: asNumber(source.wallpaperDim, 0, 0, 0.9),
         // A preset remembers the background it was saved with, never which
         // picture you had picked before it: applying one puts your picture
         // aside, it does not claim that picture as your last pick.
@@ -611,50 +647,15 @@ function sanitizePreset(input) {
 
 function sanitize(input) {
     const source = isPlainObject(input) ? input : {};
-    const theme = isPlainObject(source.theme) ? source.theme : {};
-    const panel = isPlainObject(source.panel) ? source.panel : {};
     const widgets = isPlainObject(source.widgets) ? source.widgets : {};
     const weather = isPlainObject(widgets.weather) ? widgets.weather : {};
     const clock = isPlainObject(widgets.clock) ? widgets.clock : {};
-    const layout = isPlainObject(source.layout) ? source.layout : {};
 
     return {
         version: 1,
-        theme: {
-            colorFg: asColor(theme.colorFg, DEFAULTS.theme.colorFg),
-            colorTitle: asColor(theme.colorTitle, DEFAULTS.theme.colorTitle),
-            colorLink: asColor(theme.colorLink, DEFAULTS.theme.colorLink),
-            colorLinkHover: asColor(
-                theme.colorLinkHover,
-                DEFAULTS.theme.colorLinkHover,
-            ),
-            colorLinkVisited: asColor(
-                theme.colorLinkVisited,
-                DEFAULTS.theme.colorLinkVisited,
-            ),
-            colorWidget: asColor(theme.colorWidget, DEFAULTS.theme.colorWidget),
-            fontFamily: asString(theme.fontFamily, DEFAULTS.theme.fontFamily),
-            sizeLinks: asNumber(theme.sizeLinks, 16, 8, 48),
-            sizeTitle: asNumber(theme.sizeTitle, 20, 8, 64),
-            sizeGreeting: asNumber(theme.sizeGreeting, 40, 12, 120),
-            greetingName: asString(theme.greetingName, DEFAULTS.theme.greetingName, 40),
-            greetingTemplate: asString(
-                theme.greetingTemplate,
-                DEFAULTS.theme.greetingTemplate,
-                120,
-            ),
-        },
-        panel: {
-            opacity: asNumber(panel.opacity, 0.6, 0, 1),
-            blur: asNumber(panel.blur, 7, 0, 40),
-        },
-        layout: {
-            columns: asNumber(layout.columns, 0, 0, 6),
-            gap: asNumber(layout.gap, 20, 0, 80),
-            categoryWidth: asNumber(layout.categoryWidth, 0, 0, 400),
-            panelWidth: asNumber(layout.panelWidth, 0, 0, 1600),
-            radius: asNumber(layout.radius, 16, 0, 60),
-        },
+        theme: sanitizeTheme(source.theme),
+        panel: sanitizePanel(source.panel),
+        layout: sanitizeLayout(source.layout),
         wallpaperDim: asNumber(source.wallpaperDim, 0, 0, 0.9),
         wallpaper: sanitizeWallpaper(source.wallpaper),
         widgets: {
@@ -850,18 +851,17 @@ const Settings = (() => {
         for (const listener of listeners) listener(state);
     }
 
-    /** The look on screen, in the shape a preset is saved in. */
+    /**
+     * The look on screen, in the shape a preset is saved in. It is the whole
+     * visual state and nothing else: a saved look that left the sizes or the
+     * layout out could not be used to get back to a page that reads well.
+     */
     function currentLook() {
         return {
-            theme: {
-                colorFg: state.theme.colorFg,
-                colorTitle: state.theme.colorTitle,
-                colorLink: state.theme.colorLink,
-                colorLinkHover: state.theme.colorLinkHover,
-                colorLinkVisited: state.theme.colorLinkVisited,
-                colorWidget: state.theme.colorWidget,
-            },
+            theme: { ...state.theme },
             panel: { ...state.panel },
+            layout: { ...state.layout },
+            wallpaperDim: state.wallpaperDim,
             wallpaper: { ...state.wallpaper },
         };
     }
@@ -1289,6 +1289,8 @@ const Settings = (() => {
             await commit({
                 theme: look.theme,
                 panel: look.panel,
+                layout: look.layout,
+                wallpaperDim: look.wallpaperDim,
                 // The preset brings back the background it was saved with, while
                 // the pointer to the picture you picked last is yours and stays.
                 wallpaper: {
