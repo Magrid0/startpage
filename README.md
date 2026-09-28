@@ -61,10 +61,12 @@ are left alone, so a look can never drag your page out of shape.
 **One picture, however many looks want it.** Every image you pick goes into a
 library in IndexedDB under an id of its own, and a preset points at that id
 rather than holding a copy. Two looks that share a wallpaper cost one file
-between them. A picture nothing points at any more is deleted for you, so the
-library does not grow quietly. The one exception is deliberate: applying a
-preset only *sets aside* the picture you had, and the Wallpaper tab brings it
-back with one button. Removing the wallpaper is how you really delete it.
+between them. Picking something new or applying a preset only *sets aside* the
+picture you had — the grid under the picker keeps every picture you have
+picked, marked when it is the one on screen, and a click puts a picture back.
+The library gives way only when you mean it to: removing the wallpaper or
+deleting a preset drops the file when nothing else uses it, and resetting or
+importing clears the library entirely.
 
 Deleting a preset or removing the wallpaper leaves the picture behind for the
 length of the undo window, so the toast's Undo has the file to point at again.
