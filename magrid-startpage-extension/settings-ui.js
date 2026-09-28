@@ -66,15 +66,63 @@ const SettingsUI = (() => {
         empty: "Nothing here yet — it will not show until it has a bookmark.",
     };
 
-    function toast(message, isError = false) {
+    function toast(message, isError = false, undo = null, onExpire = null) {
         clearTimeout(toastTimer);
+        // Setting textContent wipes whatever the previous toast left in place,
+        // including the Undo button it may have carried.
         els.toast.textContent = message;
         els.toast.classList.toggle("is-error", isError);
+        if (undo) {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = "toast-undo";
+            button.textContent = "Undo";
+            button.addEventListener("click", () => {
+                clearTimeout(toastTimer);
+                els.toast.classList.remove("is-visible");
+                undo();
+            });
+            els.toast.append(button);
+        }
         els.toast.classList.add("is-visible");
-        toastTimer = setTimeout(
-            () => els.toast.classList.remove("is-visible"),
-            isError ? 6000 : 3000,
-        );
+        // An undoable message is worth keeping on screen a moment longer than a
+        // plain confirmation, so the button is still there when the eye finds
+        // it; a failure gets the longest time, because it is the one that asks
+        // to be read twice.
+        const duration = isError ? 6000 : undo ? 8000 : 3000;
+        toastTimer = setTimeout(() => {
+            els.toast.classList.remove("is-visible");
+            onExpire?.();
+        }, duration);
+    }
+
+    /**
+     * Runs a deletion that the toast offers to undo. The snapshot is taken
+     * before the action, so Undo restores exactly what was there; the sweep of
+     * pictures the deletion orphaned waits until the toast window closes, so
+     * the undo has the files to point at again. Returns false when the action
+     * failed, and the caller's "deleted" message is not shown.
+     */
+    async function deleteWithUndo(snapshot, message, action, rerender) {
+        let ok = false;
+        await mutate(async () => {
+            try {
+                await action();
+                ok = true;
+            } catch (error) {
+                ok = false;
+                throw error;
+            }
+        });
+        if (!ok) return false;
+        if (rerender) await rerender();
+        toast(message, false, () => {
+            mutate(() => Settings.applyUndo(snapshot)).then(() => {
+                rerender?.();
+                toast("Undone.");
+            });
+        }, () => Settings.flushPending());
+        return true;
     }
 
     function status(message, isError = false) {
@@ -472,9 +520,13 @@ const SettingsUI = (() => {
                 await renderGallery();
                 toast(`${preset.name} updated.`);
             } else if (button.dataset.action === "delete") {
-                await mutate(() => Settings.deletePreset(index));
-                await renderGallery();
-                toast(`${preset.name} deleted.`);
+                const snapshot = { presets: deepCopy(Settings.get().presets) };
+                await deleteWithUndo(
+                    snapshot,
+                    `${preset.name} deleted.`,
+                    () => Settings.deletePreset(index, { undoable: true }),
+                    () => renderGallery(),
+                );
             }
         });
 
@@ -500,9 +552,17 @@ const SettingsUI = (() => {
         });
 
         els.wallpaperReset.addEventListener("click", async () => {
-            await mutate(() => Settings.clearWallpaper());
-            fillInputs();
-            refreshWallpaperInfo();
+            const snapshot = { wallpaper: deepCopy(Settings.get().wallpaper) };
+            await deleteWithUndo(
+                snapshot,
+                "Wallpaper removed.",
+                () => Settings.clearWallpaper({ undoable: true }),
+                async () => {
+                    fillInputs();
+                    refreshWallpaperInfo();
+                    await renderImageGrid();
+                },
+            );
         });
 
         els.wallpaperRestore.addEventListener("click", async () => {
@@ -842,10 +902,16 @@ const SettingsUI = (() => {
                         Bookmarks.moveCategory(categoryIndex, categoryIndex + 1),
                     );
                     break;
-                case "category-delete":
-                    if (!confirm(`Delete the "${name}" category?`)) return;
-                    editorAction(() => Bookmarks.removeCategory(categoryIndex));
+                case "category-delete": {
+                    const snapshot = { bookmarks: deepCopy(Settings.get().bookmarks) };
+                    deleteWithUndo(
+                        snapshot,
+                        `"${name}" deleted.`,
+                        () => Bookmarks.removeCategory(categoryIndex),
+                        () => renderEditor(),
+                    );
                     break;
+                }
                 case "link-add":
                     editorAction(() =>
                         Bookmarks.addLink(categoryIndex, {
@@ -868,9 +934,16 @@ const SettingsUI = (() => {
                         Bookmarks.moveLink(categoryIndex, linkIndex, linkIndex + 1),
                     );
                     break;
-                case "link-delete":
-                    editorAction(() => Bookmarks.removeLink(categoryIndex, linkIndex));
+                case "link-delete": {
+                    const snapshot = { bookmarks: deepCopy(Settings.get().bookmarks) };
+                    deleteWithUndo(
+                        snapshot,
+                        "Bookmark deleted.",
+                        () => Bookmarks.removeLink(categoryIndex, linkIndex),
+                        () => renderEditor(),
+                    );
                     break;
+                }
                 default:
                     break;
             }
@@ -1078,13 +1151,30 @@ const SettingsUI = (() => {
         });
 
         els.dataReset.addEventListener("click", async () => {
-            if (!confirm("Reset every setting and bookmark to the defaults?")) return;
+            const snapshot = deepCopy(Settings.get());
+            let ok = false;
             await mutate(async () => {
                 dataJsonDirty = false;
-                await Settings.reset();
-                await Settings.clearWallpaper();
+                try {
+                    await Settings.reset({ undoable: true });
+                    ok = true;
+                } catch (error) {
+                    ok = false;
+                    throw error;
+                }
             });
+            if (!ok) return;
             await afterFullReload("Reset to defaults.");
+            toast(
+                "Reset to defaults.",
+                false,
+                () => {
+                    mutate(() => Settings.applyUndo(snapshot)).then(() =>
+                        afterFullReload("Undone — everything is back."),
+                    );
+                },
+                () => Settings.flushPending(),
+            );
         });
     }
 

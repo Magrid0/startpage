@@ -845,6 +845,32 @@ const Settings = (() => {
         for (const id of await imageIds()) await collectImage(id);
     }
 
+    // --- undoable deletions -------------------------------------------------
+    // A delete that the settings menu offers to undo leaves its pictures be
+    // for the length of the undo window, so the undo has the files to point
+    // at again. The sweep below is re-checked against what the settings use,
+    // so a picture an undo brought back is left alone even if the sweep runs
+    // late; it is not a blind delete of whatever was named.
+
+    const pendingCollect = new Set();
+
+    /** Sets a picture aside for the sweep that follows the undo window. */
+    function retireImage(id) {
+        if (id) pendingCollect.add(id);
+    }
+
+    /** Sets aside every picture nothing points at, for an undoable reset. */
+    async function retireUnusedImages() {
+        for (const id of await imageIds()) retireImage(id);
+    }
+
+    /** Sweeps the pictures an undoable deletion orphaned. */
+    async function flushPendingCollect() {
+        const pending = [...pendingCollect];
+        pendingCollect.clear();
+        for (const id of pending) await collectImage(id);
+    }
+
     /** The one way this module changes the settings: merge, save, apply, tell. */
     async function commit(patch) {
         state = sanitize(merge(state, patch));
@@ -1062,12 +1088,15 @@ const Settings = (() => {
         set(patch) {
             return commit(patch);
         },
-        async reset() {
+        async reset({ undoable = false } = {}) {
             state = sanitize(DEFAULTS);
             await storageClear();
             // A reset is meant to be a clean slate, so every picture goes with
-            // it. Applying a preset is the way to set one aside instead.
-            await collectUnusedImages();
+            // it. Applying a preset is the way to set one aside instead. An
+            // undoable reset defers that sweep for the undo window, so Undo
+            // still has the files to point at.
+            if (undoable) await retireUnusedImages();
+            else await collectUnusedImages();
             if (wallpaperObjectUrl) {
                 URL.revokeObjectURL(wallpaperObjectUrl);
                 wallpaperObjectUrl = null;
@@ -1143,7 +1172,7 @@ const Settings = (() => {
          * so the file is deleted once no preset needs it any more. Applying a
          * preset is the way to set your picture aside instead of losing it.
          */
-        async clearWallpaper() {
+        async clearWallpaper({ undoable = false } = {}) {
             const previous = state.wallpaper.image;
             state = sanitize(
                 merge(state, {
@@ -1163,7 +1192,8 @@ const Settings = (() => {
                 URL.revokeObjectURL(wallpaperObjectUrl);
                 wallpaperObjectUrl = null;
             }
-            await collectImage(previous);
+            if (undoable) retireImage(previous);
+            else await collectImage(previous);
         },
         /**
          * Puts the picture you picked last back on screen. Applying a preset or
@@ -1213,14 +1243,17 @@ const Settings = (() => {
             await commit({ presets });
             return presets[index];
         },
-        async deletePreset(index) {
+        async deletePreset(index, { undoable = false } = {}) {
             const existing = state.presets[index];
             if (!existing) throw new Error("There is no preset at that position.");
             const presets = state.presets.slice();
             presets.splice(index, 1);
             const forgotten = existing.wallpaper.image;
             await commit({ presets });
-            await collectImage(forgotten);
+            // A delete with an Undo on offer leaves the picture be for the
+            // window, so restoring the preset has the file to point at again.
+            if (undoable) retireImage(forgotten);
+            else await collectImage(forgotten);
         },
         /**
          * Applies a preset: every colour, the panel and the background it was
@@ -1251,6 +1284,29 @@ const Settings = (() => {
                 },
             });
             return look;
+        },
+        // --- undo ---
+        /**
+         * Puts back a snapshot taken before a destructive action. The snapshot
+         * is a settings slice: a bookmark undo passes {bookmarks: [...]}, a
+         * reset undo the whole previous object. Pictures are safe to restore
+         * this way because their sweep re-checks what is used, and a picture
+         * an undo points at again is left alone by it.
+         */
+        async applyUndo(snapshot) {
+            state = sanitize(merge(state, snapshot));
+            await storageWrite(state);
+            await apply();
+            notify();
+            return state;
+        },
+        /**
+         * Sweeps the pictures an undoable deletion set aside, once its undo
+         * window is closed. Each id is re-checked against what the settings
+         * now point at, so an undo that brought a picture back keeps it.
+         */
+        flushPending() {
+            return flushPendingCollect();
         },
     };
 })();
