@@ -18,9 +18,9 @@ survive extension updates.
 | Tab | What it does |
 | --- | --- |
 | Presets | Your saved looks as a gallery: save the look on screen under a name, then click a card to bring it back, update it, rename it or delete it. |
-| Appearance | Colours for text, category titles, bookmarks (normal, hover, visited) and the clock/weather widgets. Font family and sizes. Panel opacity and backdrop blur. Layout: columns, spacing, panel width, corner rounding. Your name and the greeting wording. |
+| Appearance | Colours for text, category titles, bookmarks (normal, hover, visited) and the clock/weather widgets. Font family and sizes. Panel opacity and backdrop blur. Layout: columns, spacing, category width, panel width, corner rounding. Your name and the greeting wording. |
 | Wallpaper | Pick a local image or use an image URL, and remove it again. A picture over 2 MB is made smaller to fit the screen, and the tab says so. A picked image that something else has replaced can be brought back with one button. A slider darkens the wallpaper behind the text. |
-| Widgets | Show/hide the clock and the weather, 12/24 hour format, weather city and OpenWeatherMap API key. |
+| Widgets | Show/hide the clock and the weather, 12/24 hour format, an optional timezone and date format for the clock, the weather city and OpenWeatherMap API key, and an opt-in forecast under the weather. |
 | Bookmarks | Add, rename, delete, reorder and edit categories and bookmarks. Drag to reorder, or use the arrow buttons. Dropping a bookmark on another category moves it. The editor points out what needs a second look: a bookmark with no address or no name, two that share an address, a category that holds nothing. An address typed without a scheme grows one automatically, and the hint says what it became. |
 | Data | Export/import the whole configuration as JSON, or reset to defaults. A reset and every other destructive action offer an Undo in the toast for a few seconds, so nothing is gone until you let it be. |
 
@@ -50,10 +50,11 @@ thing you do most.
 save it. It turns up as a card showing what that look actually looks like: its
 background, the panel sitting on it, and a few words in its own colours. From
 there a card is `Use it`, `Update` (overwrite it with the look on screen right
-now), or `Delete`. The name field on the card is the rename, so there is no
-dialog to keep in step with the gallery. Deleting a card is not final either:
-the toast carries an Undo for a few seconds, and both the card and the look it
-brought with it come straight back.
+now), or `Delete`. The arrows on a card move it earlier or later in the
+gallery, the way the bookmark editor reorders categories. The name field on the
+card is the rename, so there is no dialog to keep in step with the gallery.
+Deleting a card is not final either: the toast carries an Undo for a few
+seconds, and both the card and the look it brought with it come straight back.
 
 A preset captures the colours, the panel and the background, and deliberately
 nothing else. Your fonts, sizes, greeting and bookmarks are not part of one and
@@ -83,17 +84,39 @@ missing their picture rather than failing.
 
 ## Layout
 
-Appearance → Layout has four sliders:
+Appearance → Layout has five sliders:
 
 - **Bookmark columns** — the categories wrap onto as many rows as they need.
   Left at `any` they stay in one row for as long as they fit, which is what the
   extension has always done.
 - **Space between them** — the gap the column count is built from, so the two
   work together.
+- **Category width** — how wide each category is. Left at `default` it is the
+  180 px the extension has always used; a number pins the width whatever the
+  bookmarks in it need.
 - **Panel width** — `fits` hugs the bookmarks as they are; a number pins the
   width however many bookmarks are in it. The padding is included, so the
   number is the width you actually see.
 - **Corner rounding** — including `0` for square corners.
+
+## The widgets
+
+Everything a widget can do beyond its plain default is off until you ask for it.
+
+- **Time zone** — the clock normally shows the browser's own time. Typing a
+  time zone name (an IANA one such as `Europe/Rome` or `UTC`) moves both the
+  time and the date to that zone, so the page can answer "what time is it at
+  home?" while you are away. Empty is your own time; a name the browser does
+  not know is quietly ignored, and the clock stays on local time.
+- **Date format** — empty uses the locale's own short date. Otherwise the date
+  is written from a template: `{wd}` the short weekday, `{mo}` the short month
+  name, `{d}` the day number, `{m}` the month number and `{y}` the year.
+  `{wd}, {mo} {d}` reads `Fri, Oct 2`.
+- **Forecast** — off by default, so a default tab makes no forecast call at
+  all. `Next 12 hours` lists the coming four three-hour steps with their icons;
+  `Next 3 days` gives each day's low and high. Both come from the same
+  OpenWeatherMap account and key as the current conditions. If the forecast
+  cannot load, the row quietly disappears and the conditions stay.
 
 ## The greeting
 
