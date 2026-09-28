@@ -19,7 +19,7 @@ survive extension updates.
 | --- | --- |
 | Presets | Your saved looks as a gallery: save the look on screen under a name, then click a card to bring it back, update it, rename it or delete it. Five starter looks sit below the gallery. |
 | Appearance | Colours for text, category titles, bookmarks (normal, hover, visited) and the clock/weather widgets. Font family and sizes. Panel opacity and backdrop blur. Layout: columns, spacing, panel width, corner rounding. Your name and the greeting wording. |
-| Wallpaper | Pick a local image or use an image URL, and remove it again. A picture over 2 MB is made smaller to fit the screen, and the tab says so. A picked image that something else has replaced can be brought back with one button. Under the picker, a grid shows every picture you have picked: the one on screen is marked, a tile whose file is missing says so, and a click puts it back. A slider darkens the wallpaper behind the text. |
+| Wallpaper | Pick a local image or use an image URL, and remove it again. A picture over 2 MB is made smaller to fit the screen, and the tab says so. A picked image that something else has replaced can be brought back with one button. A slider darkens the wallpaper behind the text. |
 | Widgets | Show/hide the clock and the weather, 12/24 hour format, weather city and OpenWeatherMap API key. |
 | Bookmarks | Add, rename, delete, reorder and edit categories and bookmarks. Drag to reorder, or use the arrow buttons. Dropping a bookmark on another category moves it. The editor points out what needs a second look: a bookmark with no address or no name, two that share an address, a category that holds nothing. An address typed without a scheme grows one automatically, and the hint says what it became. |
 | Data | Export/import the whole configuration as JSON, or reset to defaults. A reset and every other destructive action offer an Undo in the toast for a few seconds, so nothing is gone until you let it be. |
@@ -61,12 +61,10 @@ are left alone, so a look can never drag your page out of shape.
 **One picture, however many looks want it.** Every image you pick goes into a
 library in IndexedDB under an id of its own, and a preset points at that id
 rather than holding a copy. Two looks that share a wallpaper cost one file
-between them. Picking something new or applying a preset only *sets aside* the
-picture you had — the grid under the picker keeps every picture you have
-picked, marked when it is the one on screen, and a click puts a picture back.
-The library gives way only when you mean it to: removing the wallpaper or
-deleting a preset drops the file when nothing else uses it, and resetting or
-importing clears the library entirely.
+between them. A picture nothing points at any more is deleted for you, so the
+library does not grow quietly. The one exception is deliberate: applying a
+preset only *sets aside* the picture you had, and the Wallpaper tab brings it
+back with one button. Removing the wallpaper is how you really delete it.
 
 Deleting a preset or removing the wallpaper leaves the picture behind for the
 length of the undo window, so the toast's Undo has the file to point at again.

@@ -297,56 +297,6 @@ const SettingsUI = (() => {
         els.wallpaperRestoreRow.hidden = !info.restore;
     }
 
-    // --- your pictures -----------------------------------------------------
-
-    // Which draw of the grid is the current one, so a picture that arrives
-    // after the grid has been redrawn is not painted onto a tile that no
-    // longer exists. Reading a thumbnail takes a moment, and picking a
-    // different picture redraws the grid, so this is a real race.
-    let gridDraw = 0;
-
-    /** The pictures in the library, as tiles you can put on screen. */
-    async function renderImageGrid() {
-        if (!els.imageGrid) return;
-        const draw = ++gridDraw;
-        const ids = await Settings.images();
-        const used = Settings.get().wallpaper.image;
-
-        if (!ids.length) {
-            els.imageGrid.replaceChildren();
-            els.imageGrid.hidden = true;
-            els.imageGridEmpty.hidden = false;
-            return;
-        }
-
-        els.imageGrid.hidden = false;
-        els.imageGridEmpty.hidden = true;
-        const tiles = ids.map((id) => {
-            const tile = document.createElement("button");
-            tile.type = "button";
-            tile.className = "image-tile";
-            tile.dataset.image = id;
-            tile.title = "Use this picture";
-            tile.setAttribute("aria-label", "Use this picture");
-            if (id === used) tile.classList.add("is-active");
-            return tile;
-        });
-        els.imageGrid.replaceChildren(...tiles);
-
-        await Promise.all(
-            ids.map(async (id, index) => {
-                const thumb = await Settings.imageThumbnail(id);
-                const tile = tiles[index];
-                if (!thumb) {
-                    if (gridDraw === draw) tile.classList.add("is-missing");
-                    return;
-                }
-                if (gridDraw !== draw) return;
-                tile.style.backgroundImage = `url("${thumb}")`;
-            }),
-        );
-    }
-
     // --- presets -------------------------------------------------------------
 
     /**
@@ -560,7 +510,6 @@ const SettingsUI = (() => {
                 async () => {
                     fillInputs();
                     refreshWallpaperInfo();
-                    await renderImageGrid();
                 },
             );
         });
@@ -568,16 +517,6 @@ const SettingsUI = (() => {
         els.wallpaperRestore.addEventListener("click", async () => {
             await mutate(() => Settings.restoreWallpaper());
             refreshWallpaperInfo();
-        });
-
-        // A tile in the picture grid puts that picture back on screen, without
-        // re-picking the file or making a copy of it.
-        els.imageGrid?.addEventListener("click", async (event) => {
-            const tile = event.target.closest(".image-tile");
-            if (!tile) return;
-            await mutate(() => Settings.applyLibraryImage(tile.dataset.image));
-            refreshWallpaperInfo();
-            await renderImageGrid();
         });
 
         const applyUrl = async () => {
@@ -1223,8 +1162,6 @@ const SettingsUI = (() => {
         wallpaperUrlApply: "wallpaper-url-apply",
         wallpaperCurrent: "wallpaper-current",
         wallpaperShrink: "wallpaper-shrink",
-        imageGrid: "image-grid",
-        imageGridEmpty: "image-grid-empty",
         version: "settings-version",
         presetGallery: "preset-gallery",
         presetEmpty: "preset-empty",
@@ -1269,7 +1206,6 @@ const SettingsUI = (() => {
         contentsBuilt = true;
         renderEditor();
         renderGallery();
-        renderImageGrid();
         // The menu is now drawn from whatever the settings are at this moment,
         // so the next change is compared against that rather than against
         // whatever was on disk when the page loaded.
@@ -1313,7 +1249,6 @@ const SettingsUI = (() => {
         if (next.inputs !== drawn.inputs) fillInputs();
         if (next.wallpaper !== drawn.wallpaper) {
             refreshWallpaperInfo();
-            renderImageGrid();
         }
         if (next.bookmarks !== drawn.bookmarks) renderEditor();
         if (next.presets !== drawn.presets) renderGallery();
