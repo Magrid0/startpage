@@ -19,10 +19,10 @@ survive extension updates.
 | --- | --- |
 | Presets | Your saved looks as a gallery: save the look on screen under a name, then click a card to bring it back, update it, rename it or delete it. Five starter looks sit below the gallery. |
 | Appearance | Colours for text, category titles, bookmarks (normal, hover, visited) and the clock/weather widgets. Font family and sizes. Panel opacity and backdrop blur. Layout: columns, spacing, panel width, corner rounding. Your name and the greeting wording. |
-| Wallpaper | Pick a local image or use an image URL, and remove it again. A picture over 2 MB is made smaller to fit the screen, and the tab says so. A picked image that something else has replaced can be brought back with one button. A slider darkens the wallpaper behind the text. |
+| Wallpaper | Pick a local image or use an image URL, and remove it again. A picture over 2 MB is made smaller to fit the screen, and the tab says so. A picked image that something else has replaced can be brought back with one button. Under the picker, a grid shows every picture you have picked: the one on screen is marked, a tile whose file is missing says so, and a click puts it back. A slider darkens the wallpaper behind the text. |
 | Widgets | Show/hide the clock and the weather, 12/24 hour format, weather city and OpenWeatherMap API key. |
-| Bookmarks | Add, rename, delete, reorder and edit categories and bookmarks. Drag to reorder, or use the arrow buttons. Dropping a bookmark on another category moves it. |
-| Data | Export/import the whole configuration as JSON, or reset to defaults. |
+| Bookmarks | Add, rename, delete, reorder and edit categories and bookmarks. Drag to reorder, or use the arrow buttons. Dropping a bookmark on another category moves it. The editor points out what needs a second look: a bookmark with no address or no name, two that share an address, a category that holds nothing. An address typed without a scheme grows one automatically, and the hint says what it became. |
+| Data | Export/import the whole configuration as JSON, or reset to defaults. A reset and every other destructive action offer an Undo in the toast for a few seconds, so nothing is gone until you let it be. |
 
 Colours, blur, opacity and font sizes apply live, so you can see the effect
 while the menu is open.
@@ -50,7 +50,9 @@ save it. It turns up as a card showing what that look actually looks like: its
 background, the panel sitting on it, and a few words in its own colours. From
 there a card is `Use it`, `Update` (overwrite it with the look on screen right
 now), or `Delete`. The name field on the card is the rename, so there is no
-dialog to keep in step with the gallery.
+dialog to keep in step with the gallery. Deleting a card is not final either:
+the toast carries an Undo for a few seconds, and both the card and the look it
+brought with it come straight back.
 
 A preset captures the colours, the panel and the background, and deliberately
 nothing else. Your fonts, sizes, greeting and bookmarks are not part of one and
@@ -63,6 +65,12 @@ between them. A picture nothing points at any more is deleted for you, so the
 library does not grow quietly. The one exception is deliberate: applying a
 preset only *sets aside* the picture you had, and the Wallpaper tab brings it
 back with one button. Removing the wallpaper is how you really delete it.
+
+Deleting a preset or removing the wallpaper leaves the picture behind for the
+length of the undo window, so the toast's Undo has the file to point at again.
+Only the sweep that runs once that window is closed takes a picture nothing
+points at any more, and it re-checks what the settings use first — a picture an
+undo brought back is left alone.
 
 A picture preset copied from another browser has no file here, so that card says
 so and keeps the background you already have rather than blanking the page.
@@ -115,6 +123,12 @@ bookmarks whose title or address matches, with the matched part highlighted and
 a count beside the box. Categories with nothing left in them are hidden.
 `escape` clears the filter, and a second `escape` puts the list back. Nothing is
 stored, so a reload always starts whole.
+
+While the list is narrowed, the arrow keys walk the matches — the highlight
+wraps around the ends, the mouse can point at one instead, and `enter` opens the
+bookmark you are standing on. `alt` + `enter` opens it in a new tab. These keys
+only steer the highlight while the filter is narrowing the list; with the list
+left alone they do nothing.
 
 Lower case letters are all free for this, which is why the settings menu is on
 `shift` + `s` and not `s`.
