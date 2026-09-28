@@ -179,6 +179,15 @@ const SettingsUI = (() => {
         if (els.wallpaperUrl !== document.activeElement) {
             els.wallpaperUrl.value = Settings.get().wallpaper.url;
         }
+
+        updateClockPreview();
+    }
+
+    /** "Now showing: 18:05 — Mon, Sep 28", straight from the clock formatters. */
+    function updateClockPreview() {
+        if (!els.clockPreview) return;
+        const { time, date } = clockPreview();
+        els.clockPreview.textContent = `Now showing: ${time} — ${date}`;
     }
 
     function commitSetting(input) {
@@ -187,6 +196,9 @@ const SettingsUI = (() => {
         const final = input.type === "range" ? Number(value) : value;
         if (input.type === "range") showOutputs(path, final);
         mutate(() => Settings.set(patchFor(path, final)));
+        // The clock preview is not covered by redrawChanged (a write of our own
+        // skips it), so the menu refreshes it here, where the change is ours.
+        updateClockPreview();
     }
 
     function bindSettingInputs() {
@@ -1185,6 +1197,7 @@ const SettingsUI = (() => {
         weatherCityApply: "weather-city-apply",
         cityOptions: "weather-city-options",
         weatherStatus: "weather-status",
+        clockPreview: "clock-preview",
         addCategory: "category-add",
         categoriesEditor: "categories-editor",
         bookmarkIssues: "bookmark-issues",

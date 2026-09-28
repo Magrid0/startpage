@@ -119,6 +119,20 @@ function formatDate(date) {
     );
 }
 
+/**
+ * The time and the date the clock would show right now with the current
+ * settings. The settings menu uses this for its preview line, so it shows the
+ * result of a timezone or date choice before the corner widget does.
+ */
+function clockPreview() {
+    buildFormatters();
+    const now = new Date();
+    return {
+        time: timeFormat.format(now),
+        date: dateTemplate ? formatDate(now) : dateFormat.format(now),
+    };
+}
+
 function updateClock() {
     buildFormatters();
     const now = new Date();
