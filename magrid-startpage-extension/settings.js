@@ -87,6 +87,8 @@ const DEFAULTS = {
         columns: 0,
         // Pixels between categories, and the gap the column count is built from.
         gap: 20,
+        // 0 keeps the 180px category width that ships in style.css.
+        categoryWidth: 0,
         // 0 fits the panel to its content, anything else is a fixed width.
         panelWidth: 0,
         // Corner rounding of the panel.
@@ -635,6 +637,7 @@ function sanitize(input) {
         layout: {
             columns: asNumber(layout.columns, 0, 0, 6),
             gap: asNumber(layout.gap, 20, 0, 80),
+            categoryWidth: asNumber(layout.categoryWidth, 0, 0, 400),
             panelWidth: asNumber(layout.panelWidth, 0, 0, 1600),
             radius: asNumber(layout.radius, 16, 0, 60),
         },
@@ -790,6 +793,13 @@ const Settings = (() => {
         setVar("--wallpaper-dim", String(state.wallpaperDim));
         setVar("--layout-gap", `${state.layout.gap}px`);
         setVar("--layout-radius", `${state.layout.radius}px`);
+        // Zero keeps the 180px category width that ships as the default in
+        // style.css; the column count above is built from this same variable.
+        const categoryWidth =
+            state.layout.categoryWidth > 0
+                ? `${state.layout.categoryWidth}px`
+                : "180px";
+        setVar("--category-width", categoryWidth);
         // Zero columns means as many as fit, which is no maximum at all.
         setVar(
             "--layout-columns",

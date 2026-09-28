@@ -138,6 +138,11 @@ const SettingsUI = (() => {
         // showing a bare 0 next to a slider.
         if (path === "layout.columns") return value > 0 ? String(value) : "any";
         if (path === "layout.panelWidth") return value > 0 ? `${value}px` : "fits";
+        if (path === "layout.categoryWidth") {
+            // Zero keeps the 180px default that ships in style.css; there is no
+            // "0px" width, so say what zero actually does.
+            return value > 0 ? `${value}px` : "default";
+        }
         if (path.startsWith("theme.size") || path.startsWith("layout.")) {
             return `${value}px`;
         }
